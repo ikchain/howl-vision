@@ -1,0 +1,107 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "20001:20001"
+    env_file: .env
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:20001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - howl
+
+  vision-service:
+    build: ./vision-service
+    ports:
+      - "20002:20002"
+    env_file: .env
+    volumes:
+      - ./data/models:/app/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:20002/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - howl
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "20000:20000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - howl
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.5
+    ports:
+      - "20003:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/localhost/6333' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - howl
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "20004:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - howl
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "20005:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-howlvision}
+      POSTGRES_USER: ${POSTGRES_USER:-howl}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-howl} -d ${POSTGRES_DB:-howlvision}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - howl
+
+volumes:
+  qdrant-data:
+  redis-data:
+  postgres-data:
+
+networks:
+  howl:
+    driver: bridge
