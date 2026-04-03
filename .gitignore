@@ -21,6 +21,9 @@ data/datasets/
 data/rag/*.csv
 data/rag/*.json
 
+# Training outputs (generated, regenerable)
+training/output/
+
 # Python
 __pycache__/
 *.pyc
