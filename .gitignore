@@ -13,6 +13,9 @@ data/models/**/*.bin
 data/models/**/*.h5
 data/models/**/*.msgpack
 
+# NLP models (full HuggingFace downloads, ~3.4GB)
+data/models/nlp/
+
 # Datasets (too large for git)
 data/datasets/
 data/rag/*.csv
