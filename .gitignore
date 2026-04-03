@@ -9,10 +9,19 @@ data/models/**/*.pth
 data/models/**/*.onnx
 data/models/**/*.gguf
 data/models/**/*.safetensors
+data/models/**/*.bin
+data/models/**/*.h5
+data/models/**/*.msgpack
+
+# Datasets (too large for git)
+data/datasets/
+data/rag/*.csv
+data/rag/*.json
 
 # Python
 __pycache__/
 *.pyc
+*.egg-info/
 .venv/
 venv/
 
