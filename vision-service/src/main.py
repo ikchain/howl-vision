@@ -7,6 +7,7 @@ from src.api import routes
 from src.models.dermatology import DermatologyModel
 from src.models.parasites import ParasitesModel
 from src.models.segmentation import SegmentationModel
+from src.rag.embedder import SapBERTEmbedder
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -39,6 +40,12 @@ async def lifespan(app: FastAPI):
     except Exception:
         logger.exception("Failed to load segmentation model")
 
+    try:
+        routes.sapbert_embedder = SapBERTEmbedder.get()
+        logger.info("SapBERT embedder loaded")
+    except Exception:
+        logger.exception("Failed to load SapBERT embedder")
+
     logger.info("Vision service ready")
     yield
 
@@ -62,5 +69,6 @@ async def health():
             "dermatology": routes.dermatology_model.loaded if routes.dermatology_model else False,
             "parasites": routes.parasites_model.loaded if routes.parasites_model else False,
             "segmentation": routes.segmentation_model.loaded if routes.segmentation_model else False,
+            "sapbert": routes.sapbert_embedder.loaded if routes.sapbert_embedder else False,
         },
     }

@@ -26,6 +26,7 @@ services:
     env_file: .env
     volumes:
       - ./data/models:/app/models:ro
+      - ./data/datasets:/app/datasets:ro
     deploy:
       resources:
         reservations:
