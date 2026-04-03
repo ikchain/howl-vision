@@ -4,6 +4,8 @@ services:
     ports:
       - "20001:20001"
     env_file: .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       qdrant:
         condition: service_healthy
