@@ -1,0 +1,499 @@
+{
+  "meta": {
+    "date": "2026-04-04",
+    "seed": 42,
+    "protocol": "benchmarks/vision/VALIDATION_PROTOCOL.md",
+    "revision": "v2",
+    "bootstrap_iterations": 1000,
+    "caveats": [
+      "Split provenance not verifiable from this repo",
+      "Models trained in howl-vision, reused here"
+    ]
+  },
+  "dermatology": {
+    "n_samples": 433,
+    "n_classes": 6,
+    "accuracy": 0.94,
+    "accuracy_ci_lo": 0.9135,
+    "accuracy_ci_hi": 0.9587,
+    "f1_macro": 0.9229,
+    "f1_macro_ci_lo": 0.8919,
+    "f1_macro_ci_hi": 0.9497,
+    "f1_weighted": 0.9402,
+    "cohen_kappa": 0.9257,
+    "auroc_macro_ovr": 0.9942,
+    "brier_multiclass": 0.0839,
+    "per_class": {
+      "demodicosis": {
+        "precision": 0.99,
+        "recall": 0.99,
+        "f1": 0.99,
+        "support": 100,
+        "recall_ci_lo": 0.9455,
+        "recall_ci_hi": 0.9982
+      },
+      "Dermatitis": {
+        "precision": 0.8955,
+        "recall": 0.9091,
+        "f1": 0.9023,
+        "support": 66,
+        "recall_ci_lo": 0.8155,
+        "recall_ci_hi": 0.9577
+      },
+      "Fungal_infections": {
+        "precision": 0.8571,
+        "recall": 0.8889,
+        "f1": 0.8727,
+        "support": 54,
+        "recall_ci_lo": 0.7781,
+        "recall_ci_hi": 0.9481
+      },
+      "Healthy": {
+        "precision": 0.9552,
+        "recall": 0.9275,
+        "f1": 0.9412,
+        "support": 69,
+        "recall_ci_lo": 0.8413,
+        "recall_ci_hi": 0.9687
+      },
+      "Hypersensitivity_Allergic_Dermatitis": {
+        "precision": 0.8621,
+        "recall": 0.8621,
+        "f1": 0.8621,
+        "support": 29,
+        "recall_ci_lo": 0.6944,
+        "recall_ci_hi": 0.945
+      },
+      "ringworm": {
+        "precision": 0.9737,
+        "recall": 0.9652,
+        "f1": 0.9694,
+        "support": 115,
+        "recall_ci_lo": 0.914,
+        "recall_ci_hi": 0.9864
+      }
+    },
+    "baselines": {
+      "majority_f1_macro": 0.07,
+      "random_uniform_f1_macro": 0.1425,
+      "random_proportional_f1_macro": 0.1932
+    },
+    "calibration": {
+      "ece_5bins": 0.0192,
+      "ece_10bins": 0.0269,
+      "mce_10bins": 0.2389,
+      "ece_15bins": 0.0217,
+      "bin_details_10bins": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "n": 0,
+          "avg_confidence": 0.05,
+          "avg_accuracy": 0.0,
+          "gap": 0.05,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "n": 0,
+          "avg_confidence": 0.15,
+          "avg_accuracy": 0.0,
+          "gap": 0.15,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "n": 0,
+          "avg_confidence": 0.25,
+          "avg_accuracy": 0.0,
+          "gap": 0.25,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "n": 4,
+          "avg_confidence": 0.3355,
+          "avg_accuracy": 0.0,
+          "gap": 0.3355,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "n": 11,
+          "avg_confidence": 0.4539,
+          "avg_accuracy": 0.6364,
+          "gap": 0.1824,
+          "excluded": false
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "n": 14,
+          "avg_confidence": 0.5555,
+          "avg_accuracy": 0.5,
+          "gap": 0.0555,
+          "excluded": false
+        },
+        {
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "n": 13,
+          "avg_confidence": 0.6577,
+          "avg_accuracy": 0.6154,
+          "gap": 0.0423,
+          "excluded": false
+        },
+        {
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "n": 23,
+          "avg_confidence": 0.7611,
+          "avg_accuracy": 1.0,
+          "gap": 0.2389,
+          "excluded": false
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "n": 30,
+          "avg_confidence": 0.8445,
+          "avg_accuracy": 0.8333,
+          "gap": 0.0111,
+          "excluded": false
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "n": 338,
+          "avg_confidence": 0.9897,
+          "avg_accuracy": 0.997,
+          "gap": 0.0074,
+          "excluded": false
+        }
+      ],
+      "per_band": {
+        "high": {
+          "n": 368,
+          "accuracy": 0.9837,
+          "calibration_gap": -0.0837
+        },
+        "medium": {
+          "n": 50,
+          "accuracy": 0.76,
+          "calibration_gap": -0.11
+        },
+        "low": {
+          "n": 15,
+          "accuracy": 0.4667,
+          "calibration_gap": -0.0667
+        },
+        "very_low": {
+          "n": 0,
+          "accuracy": 0.0,
+          "calibration_gap": 0.15
+        }
+      },
+      "selective_prediction_curve": [
+        [
+          1.0,
+          0.94
+        ],
+        [
+          0.95,
+          0.9659
+        ],
+        [
+          0.9,
+          0.9846
+        ],
+        [
+          0.85,
+          0.9837
+        ],
+        [
+          0.8,
+          0.9971
+        ],
+        [
+          0.75,
+          0.9969
+        ],
+        [
+          0.7,
+          0.9967
+        ],
+        [
+          0.65,
+          1.0
+        ],
+        [
+          0.6,
+          1.0
+        ],
+        [
+          0.5,
+          1.0
+        ]
+      ]
+    }
+  },
+  "parasites": {
+    "n_samples": 3032,
+    "n_classes": 8,
+    "accuracy": 0.9987,
+    "accuracy_ci_lo": 0.9966,
+    "accuracy_ci_hi": 0.9995,
+    "f1_macro": 0.9967,
+    "f1_macro_ci_lo": 0.9933,
+    "f1_macro_ci_hi": 0.9992,
+    "f1_weighted": 0.9987,
+    "cohen_kappa": 0.9983,
+    "auroc_macro_ovr": 0.9995,
+    "brier_multiclass": 0.0025,
+    "per_class": {
+      "Babesia": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 118,
+        "recall_ci_lo": 0.9685,
+        "recall_ci_hi": 1.0
+      },
+      "Leishmania": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 271,
+        "recall_ci_lo": 0.986,
+        "recall_ci_hi": 1.0
+      },
+      "Leukocyte": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 110,
+        "recall_ci_lo": 0.9663,
+        "recall_ci_hi": 1.0
+      },
+      "Plasmodium": {
+        "precision": 0.988,
+        "recall": 0.9647,
+        "f1": 0.9762,
+        "support": 85,
+        "recall_ci_lo": 0.9013,
+        "recall_ci_hi": 0.9879
+      },
+      "RBCs": {
+        "precision": 0.9967,
+        "recall": 0.9989,
+        "f1": 0.9978,
+        "support": 900,
+        "recall_ci_lo": 0.9937,
+        "recall_ci_hi": 0.9998
+      },
+      "Toxoplasma": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 294,
+        "recall_ci_lo": 0.9871,
+        "recall_ci_hi": 1.0
+      },
+      "Trichomonad": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1015,
+        "recall_ci_lo": 0.9962,
+        "recall_ci_hi": 1.0
+      },
+      "Trypanosome": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 239,
+        "recall_ci_lo": 0.9842,
+        "recall_ci_hi": 1.0
+      }
+    },
+    "baselines": {
+      "majority_f1_macro": 0.0627,
+      "random_uniform_f1_macro": 0.0973,
+      "random_proportional_f1_macro": 0.1252
+    },
+    "calibration": {
+      "ece_5bins": 0.0034,
+      "ece_10bins": 0.0019,
+      "mce_10bins": 0.1484,
+      "ece_15bins": 0.0015,
+      "bin_details_10bins": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "n": 0,
+          "avg_confidence": 0.05,
+          "avg_accuracy": 0.0,
+          "gap": 0.05,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "n": 0,
+          "avg_confidence": 0.15,
+          "avg_accuracy": 0.0,
+          "gap": 0.15,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "n": 0,
+          "avg_confidence": 0.25,
+          "avg_accuracy": 0.0,
+          "gap": 0.25,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "n": 0,
+          "avg_confidence": 0.35,
+          "avg_accuracy": 0.0,
+          "gap": 0.35,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "n": 1,
+          "avg_confidence": 0.4981,
+          "avg_accuracy": 0.0,
+          "gap": 0.4981,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "n": 4,
+          "avg_confidence": 0.5525,
+          "avg_accuracy": 0.5,
+          "gap": 0.0525,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "n": 8,
+          "avg_confidence": 0.6377,
+          "avg_accuracy": 1.0,
+          "gap": 0.3623,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "n": 6,
+          "avg_confidence": 0.7589,
+          "avg_accuracy": 1.0,
+          "gap": 0.2411,
+          "excluded": true
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "n": 11,
+          "avg_confidence": 0.8516,
+          "avg_accuracy": 1.0,
+          "gap": 0.1484,
+          "excluded": false
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "n": 3002,
+          "avg_confidence": 0.9983,
+          "avg_accuracy": 0.9997,
+          "gap": 0.0014,
+          "excluded": false
+        }
+      ],
+      "per_band": {
+        "high": {
+          "n": 3013,
+          "accuracy": 0.9997,
+          "calibration_gap": -0.0997
+        },
+        "medium": {
+          "n": 18,
+          "accuracy": 0.8889,
+          "calibration_gap": -0.2389
+        },
+        "low": {
+          "n": 1,
+          "accuracy": 0.0,
+          "calibration_gap": 0.4
+        },
+        "very_low": {
+          "n": 0,
+          "accuracy": 0.0,
+          "calibration_gap": 0.15
+        }
+      },
+      "selective_prediction_curve": [
+        [
+          1.0,
+          0.9987
+        ],
+        [
+          0.95,
+          0.9997
+        ],
+        [
+          0.9,
+          0.9996
+        ],
+        [
+          0.85,
+          0.9996
+        ],
+        [
+          0.8,
+          0.9996
+        ],
+        [
+          0.75,
+          0.9996
+        ],
+        [
+          0.7,
+          0.9995
+        ],
+        [
+          0.65,
+          0.9995
+        ],
+        [
+          0.6,
+          0.9995
+        ],
+        [
+          0.5,
+          0.9993
+        ]
+      ]
+    }
+  },
+  "segmentation": {
+    "status": "val_only",
+    "architecture": "smp.Unet(encoder=efficientnet-b0, in_channels=1, classes=2)",
+    "best_val_dice": 0.9999,
+    "epoch": 34,
+    "patience": 20,
+    "caveat": "No independent held-out test. Val metric selected by early stopping, subject to optimistic bias from hyperparameter selection."
+  }
+}
