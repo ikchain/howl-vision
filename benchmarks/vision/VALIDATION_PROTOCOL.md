@@ -229,8 +229,10 @@ What to measure:
 1. ECE: lower is better. For a well-calibrated model on 6-class problems, ECE < 0.05 is good.
    ECE > 0.10 means the confidence numbers are substantially misleading.
 
-2. Per-band accuracy: For the thresholds used by the system (high > 0.85, medium 0.60-0.85,
-   low < 0.60), report the actual observed accuracy in each band.
+2. Per-band accuracy: For the thresholds used by the production system
+   (vision-service/src/models/base.py:101-108):
+   high >= 0.80, medium >= 0.50, low >= 0.30, very_low < 0.30.
+   Report the actual observed accuracy in each band.
    Calibration gap = stated_confidence - observed_accuracy
 
 3. Overconfidence vs underconfidence:
@@ -281,7 +283,8 @@ SEED = 42
 BATCH_SIZE = 32
 N_BOOTSTRAP = 1000
 ECE_BINS = 10
-CONFIDENCE_THRESHOLDS = {"high": 0.85, "medium": 0.60}
+# Production thresholds (vision-service/src/models/base.py:101-108)
+CONFIDENCE_BANDS = {"high": 0.80, "medium": 0.50, "low": 0.30, "very_low": 0.0}
 
 DERMA_TEST_DIR = PROJECT_ROOT / "data/datasets/canine/canine/dermatology/test"
 PARA_TEST_DIR  = PROJECT_ROOT / "data/datasets/parasites/parasites/test"
