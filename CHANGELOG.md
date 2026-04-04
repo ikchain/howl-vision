@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added (2026-04-04)
+- **Vision Validation :** Formal held-out test eval with pre-registered protocol. Derma: 94.00% acc, F1=0.923, ECE=0.027 (n=433). Parasites: 99.87% acc, F1=0.997, ECE=0.002 (n=3032). 8 publishable figures + results.json — `f98c8a6`
+- **Frontend Deep Ocean :** Brand overhaul — wolf logo, Inter font, Deep Ocean palette (navy-teal), About landing page, responsive grids, favicon, OG meta tags, 404 page — `78a97ec..6ac2a15`
+- **SFT Pipeline :** 3 Unsloth QLoRA runs (v2, v3, narrative). Narrative conditioning dataset (5,314 imgs). Eval framework (T1-T4). Finding: base model = fine-tuned. Documented in Notion — `2659925`
+
+### Changed (2026-04-04)
+- **Frontend routes:** `/` is now About landing (was VetChat). VetChat moved to `/chat`
+- **ToolStatus labels:** Spanish -> English for international judges
+- **ImageUpload:** Replaced alert() with inline error state
+- **About page:** Responsive layout (grid-cols-1/2/3/4 by breakpoint)
+
 ### Added
 - **Scaffold:** Docker Compose with 6 services (backend, vision-service, qdrant, redis, postgres, frontend) + Ollama external. Dockerfiles, .env.example, deploy.sh — `ef3d17d`
 - **Vision Service:** 3 models serving inference — dermatology (EfficientNetV2-S, 6 classes, 93.49% acc), parasites (EfficientNetV2-S, 8 classes, 99.83% acc), segmentation (smp.Unet, CPU). Verified with real images — `cdb31af`
