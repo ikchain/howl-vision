@@ -14,8 +14,8 @@ export default function ChatMessage({ message, streaming }: Props) {
       <div
         className={`max-w-[75%] rounded-xl px-4 py-3 ${
           isUser
-            ? "bg-gray-800 text-gray-100"
-            : "bg-transparent text-gray-100"
+            ? "bg-ocean-surface border border-ocean-border text-content-primary"
+            : "bg-transparent text-content-primary"
         }`}
       >
         {isUser && message.imagePreviewUrl && (

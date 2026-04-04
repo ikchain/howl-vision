@@ -12,9 +12,9 @@ export default function MarkdownRenderer({ content, streaming }: Props) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          // Clinical section headers in emerald for visual hierarchy
+          // Clinical section headers in teal for visual hierarchy
           strong: ({ children }) => (
-            <strong className="text-emerald-400 font-semibold">{children}</strong>
+            <strong className="text-teal-text font-semibold">{children}</strong>
           ),
           li: ({ children }) => (
             <li className="text-gray-200 my-0.5">{children}</li>
@@ -24,7 +24,7 @@ export default function MarkdownRenderer({ content, streaming }: Props) {
         {content}
       </ReactMarkdown>
       {streaming && (
-        <span className="inline-block w-2 h-4 bg-emerald-400 animate-pulse ml-0.5 align-text-bottom" />
+        <span className="inline-block w-2 h-4 bg-teal-text animate-pulse ml-0.5 align-text-bottom" />
       )}
     </div>
   );

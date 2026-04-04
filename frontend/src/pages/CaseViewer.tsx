@@ -43,21 +43,21 @@ export default function CaseViewer() {
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
       <h1 className="text-xl font-bold mb-1">Clinical Cases</h1>
-      <p className="text-sm text-gray-400 mb-6">
+      <p className="text-sm text-content-secondary mb-6">
         Search ~22,000 veterinary cases by symptoms, diagnosis, or species.
       </p>
 
       <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder='e.g. "canine dermatitis pruritus"'
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:border-emerald-500"
+          className="w-full bg-ocean-elevated border border-ocean-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-content-primary placeholder:text-content-muted focus:outline-none focus:border-teal-light"
         />
         {loading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 animate-spin" />
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-teal" />
         )}
       </div>
 
@@ -68,9 +68,16 @@ export default function CaseViewer() {
       )}
 
       {!loading && debouncedQuery.trim() && results.length === 0 && !error && (
-        <p className="text-gray-500 text-sm">
+        <p className="text-content-muted text-sm">
           No cases found for &ldquo;{debouncedQuery}&rdquo;
         </p>
+      )}
+
+      {!debouncedQuery && (
+        <div className="flex-1 flex flex-col items-center justify-center opacity-40 py-20">
+          <img src="/logo-white.svg" alt="" className="w-16 h-16 mb-4" />
+          <p className="text-content-secondary text-sm">Search 22,000 veterinary cases</p>
+        </div>
       )}
 
       <div className="space-y-3">
