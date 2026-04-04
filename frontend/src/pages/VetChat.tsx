@@ -116,11 +116,10 @@ export default function VetChat() {
     <div className="flex flex-col h-[calc(100vh-1px)]">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
-        {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full text-gray-600">
-            <p className="text-center text-sm">
-              Describe symptoms or upload a clinical image to begin.
-            </p>
+        {messages.length === 0 && status === "idle" && (
+          <div className="flex-1 flex flex-col items-center justify-center opacity-40">
+            <img src="/logo-white.svg" alt="" className="w-20 h-20 mb-4" />
+            <p className="text-content-secondary text-sm">Start a conversation or upload a clinical image</p>
           </div>
         )}
 
@@ -134,6 +133,14 @@ export default function VetChat() {
           />
         ))}
 
+        {status === "waiting" && (
+          <div className="flex gap-1.5 px-4 py-3">
+            <div className="w-2 h-2 rounded-full bg-teal animate-bounce" style={{ animationDelay: "0ms" }} />
+            <div className="w-2 h-2 rounded-full bg-teal animate-bounce" style={{ animationDelay: "150ms" }} />
+            <div className="w-2 h-2 rounded-full bg-teal animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
+        )}
+
         {activeTools.length > 0 && (
           <div className="mb-4">
             <ToolStatus tools={activeTools} />
@@ -144,7 +151,7 @@ export default function VetChat() {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-gray-800 px-6 py-3 bg-gray-950">
+      <div className="border-t border-ocean-border px-6 py-3 bg-ocean-deep">
         {pendingImage && (
           <div className="mb-2">
             <ImageUpload
@@ -174,13 +181,13 @@ export default function VetChat() {
             placeholder="Describe symptoms, ask about dosages, or upload a clinical image..."
             disabled={busy}
             rows={1}
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:border-emerald-500 resize-none disabled:opacity-40"
+            className="flex-1 bg-ocean-elevated border border-ocean-border rounded-lg px-4 py-2.5 text-sm text-content-primary placeholder:text-content-secondary focus:outline-none focus:border-teal-light resize-none disabled:opacity-40"
           />
 
           <button
             onClick={handleSubmit}
             disabled={busy || !input.trim()}
-            className="p-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg transition-colors"
+            className="p-2.5 bg-teal hover:bg-teal-hover disabled:bg-ocean-border disabled:text-content-muted text-white rounded-lg transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>
