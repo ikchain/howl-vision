@@ -825,3 +825,196 @@ def plot_selective_prediction(
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {save_path.name}")
+
+
+# ---------------------------------------------------------------------------
+# Task 6 -- Main evaluation pipeline
+# ---------------------------------------------------------------------------
+
+
+def evaluate_model(
+    name: str,
+    model_path: Path,
+    test_dir: Path,
+    class_names: list,
+    folder_to_index: dict,
+    expected_counts: dict,
+) -> dict:
+    """Run the full evaluation pipeline for one vision model.
+
+    Loads the model, runs inference on the held-out test set, computes all
+    metrics (including calibration), generates four diagnostic figures, and
+    returns a serialisable metrics dict.
+    """
+    sep = "=" * 70
+    print(f"\n{sep}")
+    print(f"  Evaluating: {name}")
+    print(sep)
+
+    # 1. Load model
+    model, device = load_classification_model(model_path, len(class_names))
+
+    # 2. Load test images with explicit class mapping
+    print("\n[load_test_images]")
+    paths, y_true, transform = load_test_images(test_dir, folder_to_index, expected_counts)
+
+    # 3. Batched inference
+    print("\n[run_inference]")
+    y_pred, softmax_probs = run_inference(model, device, paths, transform)
+
+    # 4. Shape invariant — catches silent truncation / broadcasting bugs
+    n_classes = len(class_names)
+    assert softmax_probs.shape == (len(paths), n_classes), (
+        f"Shape mismatch: expected ({len(paths)}, {n_classes}), "
+        f"got {softmax_probs.shape}"
+    )
+
+    # 5. Core classification metrics
+    print("\n[compute_classification_metrics]")
+    metrics = compute_classification_metrics(y_true, y_pred, softmax_probs, class_names)
+
+    # 6. Calibration metrics
+    calib = compute_calibration(y_true, softmax_probs, n_classes)
+    metrics["calibration"] = calib
+
+    # 7. Human-readable summary
+    ece_10 = calib.get("ece_10bins", float("nan"))
+    print(f"\n--- Summary: {name} ---")
+    print(
+        f"  Accuracy : {metrics['accuracy']:.4f}  "
+        f"95%CI [{metrics['accuracy_ci_lo']:.4f}, {metrics['accuracy_ci_hi']:.4f}]"
+    )
+    print(
+        f"  F1 macro : {metrics['f1_macro']:.4f}  "
+        f"95%CI [{metrics['f1_macro_ci_lo']:.4f}, {metrics['f1_macro_ci_hi']:.4f}]"
+    )
+    print(f"  Kappa    : {metrics['cohen_kappa']:.4f}")
+    auroc_str = f"{metrics['auroc_macro_ovr']:.4f}" if metrics["auroc_macro_ovr"] is not None else "N/A"
+    print(f"  AUROC    : {auroc_str}")
+    print(f"  Brier    : {metrics['brier_multiclass']:.4f}")
+    print(f"  ECE@10   : {ece_10:.4f}")
+    print("  Per-class (F1 / Recall / Recall-CI):")
+    for cls_name, vals in metrics["per_class"].items():
+        print(
+            f"    {cls_name:<45}  "
+            f"F1={vals['f1']:.3f}  "
+            f"Rec={vals['recall']:.3f}  "
+            f"CI=[{vals['recall_ci_lo']:.3f},{vals['recall_ci_hi']:.3f}]"
+        )
+
+    # 8. Figures — prefix derived from the human-readable model name
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    prefix = name.lower().replace(" ", "_").replace("(", "").replace(")", "")
+
+    print("\n[figures]")
+    plot_confusion_matrix(
+        y_true, y_pred, class_names,
+        title=f"Confusion Matrix — {name}",
+        save_path=FIGURES_DIR / f"{prefix}_confusion_matrix.png",
+    )
+    auroc_val = metrics["auroc_macro_ovr"] if metrics["auroc_macro_ovr"] is not None else 0.0
+    plot_roc_curves(
+        y_true, softmax_probs, class_names, auroc_val,
+        title=f"ROC Curves — {name}",
+        save_path=FIGURES_DIR / f"{prefix}_roc_curves.png",
+    )
+    plot_reliability_diagram(
+        y_true, softmax_probs, ece_10,
+        title=name,
+        save_path=FIGURES_DIR / f"{prefix}_reliability_diagram.png",
+    )
+    plot_selective_prediction(
+        calib["selective_prediction_curve"],
+        title=f"Selective Prediction — {name}",
+        save_path=FIGURES_DIR / f"{prefix}_selective_prediction.png",
+    )
+
+    # 9. Free GPU memory before loading the next model
+    del model
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    return metrics
+
+
+def main() -> None:
+    """Orchestrate evaluation of all vision models and persist results to JSON."""
+    sep = "#" * 70
+    print(f"\n{sep}")
+    print("  Vision Model Formal Evaluation")
+    print(f"  Protocol : benchmarks/vision/VALIDATION_PROTOCOL.md  (rev v2)")
+    print(f"  Seed     : {SEED}")
+    print(f"  Bootstrap: {N_BOOTSTRAP} iterations")
+    print(sep)
+
+    results: dict = {
+        "meta": {
+            "date": "2026-04-04",
+            "seed": SEED,
+            "protocol": "benchmarks/vision/VALIDATION_PROTOCOL.md",
+            "revision": "v2",
+            "bootstrap_iterations": N_BOOTSTRAP,
+            "caveats": [
+                "Split provenance not verifiable from this repo",
+                "Models trained in howl-vision, reused here",
+            ],
+        },
+    }
+
+    # Dermatology model
+    results["dermatology"] = evaluate_model(
+        "Dermatology (Canine)",
+        DERMA_MODEL_PATH,
+        DERMA_TEST_DIR,
+        DERMA_CLASS_NAMES,
+        DERMA_FOLDER_TO_INDEX,
+        EXPECTED_COUNTS_DERMA,
+    )
+
+    # Parasites model
+    results["parasites"] = evaluate_model(
+        "Parasites",
+        PARA_MODEL_PATH,
+        PARA_TEST_DIR,
+        PARA_CLASS_NAMES,
+        PARA_FOLDER_TO_INDEX,
+        EXPECTED_COUNTS_PARA,
+    )
+
+    # Segmentation — no independent test set; record metadata only
+    results["segmentation"] = {
+        "status": "val_only",
+        "architecture": "smp.Unet(encoder=efficientnet-b0, in_channels=1, classes=2)",
+        "best_val_dice": 0.9999,
+        "epoch": 34,
+        "patience": 20,
+        "caveat": (
+            "No independent held-out test. Val metric selected by early stopping, "
+            "subject to optimistic bias from hyperparameter selection."
+        ),
+    }
+
+    # Persist
+    results_path = Path(__file__).resolve().parent / "results.json"
+    results_path.write_text(json.dumps(results, indent=2))
+    print(f"\n[saved] {results_path}")
+
+    # Final summary table
+    sep2 = "-" * 70
+    print(f"\n{sep2}")
+    print("  FINAL SUMMARY")
+    print(sep2)
+    for key, label in [("dermatology", "Dermatology (Canine)"), ("parasites", "Parasites")]:
+        m = results[key]
+        print(
+            f"  {label:<30}  "
+            f"acc={m['accuracy']:.4f}  "
+            f"f1={m['f1_macro']:.4f}  "
+            f"kappa={m['cohen_kappa']:.4f}  "
+            f"auroc={m['auroc_macro_ovr']}"
+        )
+    print(sep2)
+
+
+if __name__ == "__main__":
+    main()
