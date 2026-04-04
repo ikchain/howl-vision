@@ -1,156 +1,133 @@
 import { Link } from "react-router-dom";
 import { MessageSquare, ScanLine, Database, ChevronRight } from "lucide-react";
 
+const FEATURES = [
+  {
+    icon: MessageSquare,
+    title: "Conversational AI",
+    desc: "Chat naturally with Gemma 4 about symptoms, differential diagnoses, treatments, and drug interactions.",
+  },
+  {
+    icon: ScanLine,
+    title: "Vision Diagnosis",
+    desc: "Upload clinical images for AI-powered dermatology classification and blood parasite detection.",
+  },
+  {
+    icon: Database,
+    title: "Clinical Knowledge",
+    desc: "Search 22,000 veterinary cases with semantic similarity powered by SapBERT embeddings.",
+  },
+];
+
+const METRICS = [
+  { value: "94%", label: "Dermatology accuracy" },
+  { value: "99.87%", label: "Parasite detection" },
+  { value: "22K", label: "Clinical cases" },
+  { value: "100%", label: "Offline capable" },
+];
+
+const PIPELINE = ["Clinical Image", "Vision Models", "Gemma 4 E4B", "Clinical Report"];
+
 export function About() {
   return (
-    <div className="min-h-screen bg-ocean-deep text-content-primary">
+    <div className="min-h-screen bg-ocean-deep text-content-primary flex flex-col">
       {/* Hero */}
       <section
-        className="min-h-[70vh] flex items-center justify-center"
+        className="flex-shrink-0 flex items-center justify-center px-6 py-12 md:py-16 lg:py-20"
         style={{
           background:
             "radial-gradient(ellipse at center, rgba(0,107,128,0.15) 0%, transparent 70%)",
         }}
       >
-        <div className="text-center px-6">
+        <div className="text-center max-w-2xl">
           <img
             src="/logo-color.svg"
             alt="Howl Vision"
-            className="w-28 h-28 mx-auto mb-6"
+            className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 mx-auto mb-4"
           />
-          <h1 className="text-5xl font-bold text-content-primary">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold">
             Howl Vision
           </h1>
-          <p className="text-xl text-content-secondary max-w-lg mx-auto mt-3">
+          <p className="text-base md:text-lg text-content-secondary mt-2 md:mt-3">
             AI-powered veterinary copilot for clinics without internet
           </p>
           <Link
             to="/chat"
-            className="bg-teal hover:bg-teal-hover text-white rounded-xl px-8 py-3.5 font-medium text-lg mt-8 inline-block transition-colors shadow-lg shadow-teal/20"
+            className="bg-teal hover:bg-teal-hover text-white rounded-xl px-6 py-2.5 md:px-8 md:py-3 font-medium text-sm md:text-base mt-5 md:mt-6 inline-block transition-colors shadow-lg shadow-teal/20"
           >
-            Try it now →
+            Try it now &rarr;
           </Link>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 max-w-5xl mx-auto px-6">
-        <h2 className="text-2xl font-semibold text-content-primary text-center mb-12">
-          What it does
-        </h2>
-        <div className="grid grid-cols-3 gap-8">
-          {/* Card 1 */}
-          <div className="bg-ocean-surface rounded-xl p-8 border border-ocean-border">
-            <div className="w-12 h-12 rounded-xl bg-teal/10 flex items-center justify-center mb-4">
-              <MessageSquare size={24} className="text-teal-text" />
-            </div>
-            <h3 className="text-lg font-semibold text-content-primary mb-2">
-              Conversational AI
-            </h3>
-            <p className="text-content-secondary text-sm leading-relaxed">
-              Chat naturally with Gemma 4 about symptoms, differential
-              diagnoses, treatments, and drug interactions.
-            </p>
+      {/* Features + Metrics in a combined flow */}
+      <section className="flex-1 px-4 md:px-6 pb-4">
+        <div className="max-w-5xl mx-auto">
+          {/* Features */}
+          <h2 className="text-lg font-semibold text-center mb-5 md:mb-6">
+            What it does
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            {FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className="bg-ocean-surface rounded-xl p-5 md:p-6 border border-ocean-border hover:border-ocean-border-hover transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-teal/10 flex items-center justify-center mb-3">
+                  <f.icon size={22} className="text-teal-text" />
+                </div>
+                <h3 className="text-base font-semibold mb-1.5">{f.title}</h3>
+                <p className="text-content-secondary text-sm leading-relaxed">
+                  {f.desc}
+                </p>
+              </div>
+            ))}
           </div>
 
-          {/* Card 2 */}
-          <div className="bg-ocean-surface rounded-xl p-8 border border-ocean-border">
-            <div className="w-12 h-12 rounded-xl bg-teal/10 flex items-center justify-center mb-4">
-              <ScanLine size={24} className="text-teal-text" />
+          {/* Metrics */}
+          <div className="bg-ocean-surface/50 rounded-xl p-5 md:p-6 border border-ocean-border mt-6 md:mt-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 text-center">
+              {METRICS.map((m) => (
+                <div key={m.label}>
+                  <div className="text-2xl md:text-3xl font-bold text-teal-light">
+                    {m.value}
+                  </div>
+                  <div className="text-content-secondary text-xs md:text-sm mt-1">
+                    {m.label}
+                  </div>
+                </div>
+              ))}
             </div>
-            <h3 className="text-lg font-semibold text-content-primary mb-2">
-              Vision Diagnosis
-            </h3>
-            <p className="text-content-secondary text-sm leading-relaxed">
-              Upload clinical images for AI-powered dermatology classification
-              and blood parasite detection.
-            </p>
           </div>
 
-          {/* Card 3 */}
-          <div className="bg-ocean-surface rounded-xl p-8 border border-ocean-border">
-            <div className="w-12 h-12 rounded-xl bg-teal/10 flex items-center justify-center mb-4">
-              <Database size={24} className="text-teal-text" />
-            </div>
-            <h3 className="text-lg font-semibold text-content-primary mb-2">
-              Clinical Knowledge
-            </h3>
-            <p className="text-content-secondary text-sm leading-relaxed">
-              Search 22,000 veterinary cases with semantic similarity powered
-              by SapBERT embeddings.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Metrics */}
-      <section className="py-16 max-w-4xl mx-auto px-6">
-        <div className="bg-ocean-surface/50 rounded-2xl p-8 border border-ocean-border">
-          <div className="grid grid-cols-4 gap-6 text-center">
-            <div>
-              <div className="text-3xl font-bold text-teal-light">94%</div>
-              <div className="text-content-secondary text-sm mt-1">
-                Dermatology accuracy
-              </div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-teal-light">99.87%</div>
-              <div className="text-content-secondary text-sm mt-1">
-                Parasite detection
-              </div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-teal-light">22K</div>
-              <div className="text-content-secondary text-sm mt-1">
-                Clinical cases
-              </div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-teal-light">100%</div>
-              <div className="text-content-secondary text-sm mt-1">
-                Offline capable
-              </div>
+          {/* Pipeline */}
+          <div className="text-center mt-6 md:mt-8">
+            <h2 className="text-sm font-semibold text-content-muted uppercase tracking-wider mb-3">
+              How it works
+            </h2>
+            <div className="flex items-center justify-center flex-wrap gap-1.5 md:gap-2">
+              {PIPELINE.map((step, i) => (
+                <span key={step} className="contents">
+                  <span className="bg-ocean-surface px-3 py-1.5 rounded-md text-xs md:text-sm text-content-secondary border border-ocean-border">
+                    {step}
+                  </span>
+                  {i < PIPELINE.length - 1 && (
+                    <ChevronRight size={14} className="text-teal-text flex-shrink-0" />
+                  )}
+                </span>
+              ))}
             </div>
           </div>
         </div>
-      </section>
-
-      {/* How it works */}
-      <section className="py-16 max-w-3xl mx-auto px-6 text-center">
-        <h2 className="text-2xl font-semibold text-content-primary mb-6">
-          How it works
-        </h2>
-        <div className="flex items-center justify-center flex-wrap gap-2">
-          <span className="bg-ocean-surface px-4 py-2 rounded-lg text-sm text-content-secondary border border-ocean-border">
-            Clinical Image
-          </span>
-          <ChevronRight size={16} className="text-teal-text" />
-          <span className="bg-ocean-surface px-4 py-2 rounded-lg text-sm text-content-secondary border border-ocean-border">
-            Vision Models
-          </span>
-          <ChevronRight size={16} className="text-teal-text" />
-          <span className="bg-ocean-surface px-4 py-2 rounded-lg text-sm text-content-secondary border border-ocean-border">
-            Gemma 4 E4B
-          </span>
-          <ChevronRight size={16} className="text-teal-text" />
-          <span className="bg-ocean-surface px-4 py-2 rounded-lg text-sm text-content-secondary border border-ocean-border">
-            Clinical Report
-          </span>
-        </div>
-      </section>
-
-      {/* Tech strip */}
-      <section className="py-8 text-center">
-        <p className="text-content-muted text-sm">
-          Powered by Gemma 4 · Fine-tuned with Unsloth · Runs on Ollama ·
-          Exported with llama.cpp
-        </p>
       </section>
 
       {/* Footer */}
-      <footer className="py-6 text-center border-t border-ocean-border">
+      <footer className="flex-shrink-0 py-4 text-center border-t border-ocean-border space-y-1">
         <p className="text-content-muted text-xs">
-          Gemma 4 Good Hackathon 2026 · Open Source
+          Powered by Gemma 4 &middot; Fine-tuned with Unsloth &middot; Runs on Ollama &middot; Exported with llama.cpp
+        </p>
+        <p className="text-content-muted text-xs opacity-60">
+          Gemma 4 Good Hackathon 2026 &middot; Open Source
         </p>
       </footer>
     </div>
