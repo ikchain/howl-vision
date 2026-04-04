@@ -433,3 +433,395 @@ def compute_classification_metrics(
             "random_proportional_f1_macro": f1_random_prop,
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# Task 4 -- Calibration metrics
+# ---------------------------------------------------------------------------
+
+
+def compute_calibration(
+    y_true: np.ndarray,
+    softmax_probs: np.ndarray,
+    n_classes: int,
+) -> dict:
+    """Compute calibration metrics: ECE at multiple bin counts, per-confidence-band
+    accuracy, and selective prediction curve.
+
+    ECE sensitivity is checked at 5, 10, and 15 bins. Bins with fewer than 10
+    samples are excluded from the weighted ECE sum (they are unreliable) but
+    kept in the output for inspection.
+
+    Selective prediction curve measures accuracy when the model is only asked to
+    predict on the samples it is most confident about — a proxy for real-world
+    triage where low-confidence cases are escalated to a human.
+    """
+    max_probs = softmax_probs.max(axis=1)                              # (N,)
+    y_argmax = softmax_probs.argmax(axis=1)
+    correct = (y_argmax == y_true).astype(float)                       # (N,)
+    n = len(y_true)
+
+    # ------------------------------------------------------------------
+    # ECE at multiple bin counts (sensitivity check)
+    # ------------------------------------------------------------------
+    ece_results: dict = {}
+    bin_details_10: list = []
+
+    for n_bins in ECE_BIN_COUNTS:
+        bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
+        ece_accum = 0.0
+        mce = 0.0
+        bins: list = []
+
+        for b in range(n_bins):
+            lo, hi = bin_edges[b], bin_edges[b + 1]
+            # Use half-open intervals [lo, hi) except the last bin which is [lo, hi]
+            if b < n_bins - 1:
+                mask = (max_probs >= lo) & (max_probs < hi)
+            else:
+                mask = (max_probs >= lo) & (max_probs <= hi)
+
+            n_bin = int(mask.sum())
+            excluded = n_bin < 10
+
+            if n_bin > 0:
+                avg_confidence = float(max_probs[mask].mean())
+                avg_accuracy = float(correct[mask].mean())
+            else:
+                avg_confidence = float((lo + hi) / 2)
+                avg_accuracy = 0.0
+
+            gap = abs(avg_confidence - avg_accuracy)
+
+            if not excluded:
+                ece_accum += (n_bin / n) * gap
+                mce = max(mce, gap)
+
+            bin_info = {
+                "bin_lower": round(lo, 4),
+                "bin_upper": round(hi, 4),
+                "n": n_bin,
+                "avg_confidence": round(avg_confidence, 4),
+                "avg_accuracy": round(avg_accuracy, 4),
+                "gap": round(gap, 4),
+                "excluded": excluded,
+            }
+            bins.append(bin_info)
+
+        ece_results[f"ece_{n_bins}bins"] = round(ece_accum, 4)
+
+        if n_bins == 10:
+            ece_results["mce_10bins"] = round(mce, 4)
+            bin_details_10 = bins
+
+    ece_results["bin_details_10bins"] = bin_details_10
+
+    # ------------------------------------------------------------------
+    # Per-band accuracy (production confidence bands)
+    # Bands defined in CONFIDENCE_BANDS; processed high → low so each
+    # sample falls into exactly one band.
+    # ------------------------------------------------------------------
+    # Band midpoints used for calibration_gap (gap = midpoint - accuracy)
+    band_midpoints = {
+        "high": 0.90,    # [0.80, 1.00] midpoint
+        "medium": 0.65,  # [0.50, 0.80) midpoint
+        "low": 0.40,     # [0.30, 0.50) midpoint
+        "very_low": 0.15,  # [0.00, 0.30) midpoint
+    }
+
+    band_thresholds = [
+        ("high",     CONFIDENCE_BANDS["high"]),     # >= 0.80
+        ("medium",   CONFIDENCE_BANDS["medium"]),   # >= 0.50
+        ("low",      CONFIDENCE_BANDS["low"]),       # >= 0.30
+        ("very_low", CONFIDENCE_BANDS["very_low"]), # >= 0.00 (catch-all)
+    ]
+
+    per_band: dict = {}
+    for band_name, threshold in band_thresholds:
+        if band_name == "high":
+            mask = max_probs >= threshold
+        elif band_name == "medium":
+            mask = (max_probs >= threshold) & (max_probs < CONFIDENCE_BANDS["high"])
+        elif band_name == "low":
+            mask = (max_probs >= threshold) & (max_probs < CONFIDENCE_BANDS["medium"])
+        else:  # very_low
+            mask = max_probs < CONFIDENCE_BANDS["low"]
+
+        n_band = int(mask.sum())
+        accuracy_band = float(correct[mask].mean()) if n_band > 0 else 0.0
+        midpoint = band_midpoints[band_name]
+        calibration_gap = round(midpoint - accuracy_band, 4)
+
+        per_band[band_name] = {
+            "n": n_band,
+            "accuracy": round(accuracy_band, 4),
+            "calibration_gap": calibration_gap,
+        }
+
+    # ------------------------------------------------------------------
+    # Selective prediction curve
+    # Sort by descending confidence; at each coverage threshold compute
+    # accuracy on the top-N most confident predictions.
+    # ------------------------------------------------------------------
+    coverages = [1.0, 0.95, 0.90, 0.85, 0.80, 0.75, 0.70, 0.65, 0.60, 0.50]
+    sorted_idx = np.argsort(-max_probs)  # descending confidence order
+    sorted_correct = correct[sorted_idx]
+
+    selective_curve: list = []
+    for cov in coverages:
+        keep_n = int(len(sorted_correct) * cov)
+        # Always keep at least 1 sample
+        keep_n = max(keep_n, 1)
+        acc_at_cov = float(sorted_correct[:keep_n].mean())
+        selective_curve.append([round(cov, 2), round(acc_at_cov, 4)])
+
+    return {
+        **ece_results,
+        "per_band": per_band,
+        "selective_prediction_curve": selective_curve,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Task 5 -- Visualization functions
+# ---------------------------------------------------------------------------
+
+
+def plot_confusion_matrix(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    class_names: list,
+    title: str,
+    save_path: Path,
+) -> None:
+    """Side-by-side confusion matrix: normalised (recall) + raw counts.
+
+    Normalised matrix uses row-wise (per-true-class) normalisation so each row
+    sums to 1 and the diagonal reads as per-class recall. Raw counts are shown
+    alongside so the absolute sample sizes remain visible.
+    """
+    cm_raw = confusion_matrix(y_true, y_pred, labels=list(range(len(class_names))))
+    # Row-wise normalisation: recall matrix. Avoid divide-by-zero for absent classes.
+    row_sums = cm_raw.sum(axis=1, keepdims=True)
+    cm_norm = np.where(row_sums > 0, cm_raw / row_sums, 0.0)
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+    fig.suptitle(title, fontsize=13, y=1.01)
+
+    for ax, data, subtitle, fmt_float in [
+        (axes[0], cm_norm, "Normalised (recall)", True),
+        (axes[1], cm_raw,  "Raw counts",          False),
+    ]:
+        kwargs = dict(
+            cmap="Blues",
+            aspect="auto",
+        )
+        if fmt_float:
+            kwargs["vmin"] = 0.0
+            kwargs["vmax"] = 1.0
+
+        im = ax.imshow(data, **kwargs)
+        plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+        ax.set_xticks(range(len(class_names)))
+        ax.set_yticks(range(len(class_names)))
+        ax.set_xticklabels(class_names, rotation=45, ha="right", fontsize=8)
+        ax.set_yticklabels(class_names, fontsize=8)
+        ax.set_xlabel("Predicted", fontsize=10)
+        ax.set_ylabel("True", fontsize=10)
+        ax.set_title(subtitle, fontsize=11)
+
+        # Annotate cells
+        thresh = data.max() / 2.0
+        for i in range(data.shape[0]):
+            for j in range(data.shape[1]):
+                val = data[i, j]
+                text = f"{val:.2f}" if fmt_float else str(int(val))
+                color = "white" if val > thresh else "black"
+                ax.text(j, i, text, ha="center", va="center", fontsize=7, color=color)
+
+    plt.tight_layout()
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved: {save_path.name}")
+
+
+def plot_roc_curves(
+    y_true: np.ndarray,
+    softmax_probs: np.ndarray,
+    class_names: list,
+    auroc: float,
+    title: str,
+    save_path: Path,
+) -> None:
+    """Per-class OvR ROC curves + macro average overlay.
+
+    Per-class curves are drawn at low opacity to show individual spread.
+    The macro average is computed by interpolating each class's TPR onto a
+    shared FPR grid and then averaging — same methodology as sklearn's
+    macro-average ROC for multiclass.
+    """
+    n_classes = len(class_names)
+    fpr_grid = np.linspace(0, 1, 100)
+    tprs_interpolated: list = []
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    for c in range(n_classes):
+        y_bin = (y_true == c).astype(int)
+        if y_bin.sum() == 0:
+            continue  # skip classes with no positive samples in test set
+        fpr_c, tpr_c, _ = roc_curve(y_bin, softmax_probs[:, c])
+        ax.plot(fpr_c, tpr_c, alpha=0.3, linewidth=1, label=f"_{class_names[c]}")
+        tprs_interpolated.append(np.interp(fpr_grid, fpr_c, tpr_c))
+
+    # Macro average
+    mean_tpr = np.mean(tprs_interpolated, axis=0)
+    mean_tpr[0] = 0.0
+    ax.plot(
+        fpr_grid,
+        mean_tpr,
+        color="navy",
+        linewidth=2.5,
+        label=f"Macro avg (AUROC={auroc:.3f})" if auroc is not None else "Macro avg",
+    )
+
+    # Random baseline
+    ax.plot([0, 1], [0, 1], "k--", alpha=0.5, label="Random baseline")
+
+    ax.set_xlabel("False Positive Rate", fontsize=11)
+    ax.set_ylabel("True Positive Rate", fontsize=11)
+    ax.set_title(title, fontsize=12)
+    ax.legend(loc="lower right", fontsize=7)
+
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved: {save_path.name}")
+
+
+def plot_reliability_diagram(
+    y_true: np.ndarray,
+    softmax_probs: np.ndarray,
+    ece_10: float,
+    title: str,
+    save_path: Path,
+) -> None:
+    """Reliability diagram (calibration plot) with 10 equal-width bins.
+
+    A perfectly calibrated model would have all bars exactly on the diagonal.
+    The right y-axis histogram shows the distribution of predicted confidences
+    so that well- vs. poorly-supported bins are immediately visible.
+    """
+    n_bins = 10
+    max_probs = softmax_probs.max(axis=1)
+    correct = (softmax_probs.argmax(axis=1) == y_true).astype(float)
+    bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+
+    accuracies: list = []
+    counts: list = []
+
+    for b in range(n_bins):
+        lo, hi = bin_edges[b], bin_edges[b + 1]
+        if b < n_bins - 1:
+            mask = (max_probs >= lo) & (max_probs < hi)
+        else:
+            mask = (max_probs >= lo) & (max_probs <= hi)
+        n_bin = int(mask.sum())
+        counts.append(n_bin)
+        accuracies.append(float(correct[mask].mean()) if n_bin > 0 else 0.0)
+
+    fig, ax1 = plt.subplots(figsize=(8, 6))
+
+    # Bar chart: observed accuracy per bin
+    ax1.bar(
+        bin_centers,
+        accuracies,
+        width=0.08,
+        alpha=0.7,
+        color="steelblue",
+        edgecolor="navy",
+        label="Accuracy per bin",
+    )
+
+    # Perfect calibration diagonal
+    ax1.plot([0, 1], [0, 1], "r--", linewidth=1.5, label="Perfect calibration")
+
+    ax1.set_xlabel("Mean predicted confidence", fontsize=11)
+    ax1.set_ylabel("Fraction correct", fontsize=11)
+    ax1.set_xlim(0, 1)
+    ax1.set_ylim(0, 1)
+    ax1.set_title(f"{title} — Reliability Diagram (ECE={ece_10:.3f})", fontsize=12)
+    ax1.legend(loc="upper left", fontsize=9)
+
+    # Twin axis: sample count histogram (secondary visual guide)
+    ax2 = ax1.twinx()
+    ax2.bar(
+        bin_centers,
+        counts,
+        width=0.08,
+        alpha=0.2,
+        color="gray",
+        label="Sample count",
+    )
+    ax2.set_ylabel("Sample count", fontsize=10, color="gray")
+    ax2.tick_params(axis="y", labelcolor="gray")
+
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved: {save_path.name}")
+
+
+def plot_selective_prediction(
+    selective_data: list,
+    title: str,
+    save_path: Path,
+) -> None:
+    """Accuracy vs. coverage (selective prediction) curve.
+
+    X-axis is inverted (1.0 → 0.5) so the "easy" high-coverage regime is on
+    the left and the "hard" low-coverage regime is on the right — matching the
+    intuition that moving right means increasing selectivity.
+
+    A horizontal dashed line at the full-coverage accuracy (first point) shows
+    the gain from abstaining on low-confidence predictions.
+    """
+    coverages = [pt[0] for pt in selective_data]
+    accuracies = [pt[1] for pt in selective_data]
+
+    # Full-coverage accuracy is the point at coverage=1.0
+    full_coverage_idx = coverages.index(1.0) if 1.0 in coverages else 0
+    full_accuracy = accuracies[full_coverage_idx]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    ax.plot(
+        coverages,
+        accuracies,
+        "o-",
+        color="teal",
+        linewidth=2,
+        markersize=6,
+        label="Accuracy at coverage",
+    )
+    ax.axhline(
+        y=full_accuracy,
+        linestyle="--",
+        color="gray",
+        linewidth=1.2,
+        label=f"Full-coverage accuracy ({full_accuracy:.3f})",
+    )
+
+    ax.set_xlabel("Coverage", fontsize=11)
+    ax.set_ylabel("Accuracy on kept predictions", fontsize=11)
+    ax.set_title(title, fontsize=12)
+    ax.set_xlim(1.0, 0.5)  # inverted x-axis
+    ax.legend(fontsize=9)
+
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved: {save_path.name}")
