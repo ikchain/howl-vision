@@ -86,7 +86,7 @@ export default function ImageDx() {
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
       <h1 className="text-xl font-bold mb-1">Image Diagnosis</h1>
-      <p className="text-sm text-gray-400 mb-6">
+      <p className="text-sm text-content-muted mb-6">
         Upload a clinical photo for instant AI-powered analysis.
       </p>
 
@@ -106,15 +106,15 @@ export default function ImageDx() {
             onDrop={handleDrop}
             className={`border-2 border-dashed rounded-xl p-16 flex flex-col items-center gap-3 cursor-pointer transition-colors ${
               dragOver
-                ? "border-emerald-500 bg-emerald-500/5"
-                : "border-gray-700 hover:border-gray-500"
+                ? "border-teal bg-teal/5"
+                : "border-ocean-border hover:border-ocean-border-hover"
             }`}
           >
-            <Upload className="w-8 h-8 text-gray-500" />
-            <p className="text-sm text-gray-400">
+            <Upload className="w-8 h-8 text-content-secondary" />
+            <p className="text-sm text-content-muted">
               Drag & drop an image here, or click to browse
             </p>
-            <p className="text-xs text-gray-600">JPEG, PNG up to 5MB</p>
+            <p className="text-xs text-content-secondary">JPEG, PNG up to 5MB</p>
           </div>
         </>
       ) : (
@@ -123,14 +123,14 @@ export default function ImageDx() {
             <img
               src={previewUrl}
               alt="Clinical image"
-              className="max-h-64 rounded-xl border border-gray-800 object-contain"
+              className="max-h-64 rounded-xl border border-ocean-elevated object-contain"
             />
           )}
 
           {activeTools.length > 0 && <ToolStatus tools={activeTools} />}
 
           {result && (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div className="bg-ocean-surface border border-ocean-elevated rounded-xl p-5 border-t-2 border-teal">
               <MarkdownRenderer
                 content={result}
                 streaming={status === "analyzing"}
@@ -145,7 +145,7 @@ export default function ImageDx() {
           {(status === "done" || status === "error") && (
             <button
               onClick={reset}
-              className="flex items-center gap-2 text-sm text-gray-400 hover:text-emerald-400 transition-colors"
+              className="flex items-center gap-2 text-sm text-content-muted hover:text-teal-text transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
               Analyze another image

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Paperclip, X } from "lucide-react";
 import { fileToBase64, MAX_IMAGE_SIZE_BYTES } from "../../lib/api";
 
@@ -16,10 +16,12 @@ export default function ImageUpload({
   disabled,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleFile(file: File) {
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      alert(`Image too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 5MB.`);
+      setError("Image must be under 5MB");
+      setTimeout(() => setError(null), 3000);
       return;
     }
     const base64 = await fileToBase64(file);
@@ -40,13 +42,13 @@ export default function ImageUpload({
         <img
           src={currentPreview}
           alt="Selected"
-          className="h-16 rounded-lg object-cover border border-gray-700"
+          className="h-16 rounded-lg object-cover border border-ocean-border"
         />
         <button
           type="button"
           onClick={onClear}
           disabled={disabled}
-          className="absolute -top-1.5 -right-1.5 bg-gray-700 hover:bg-red-600 rounded-full p-0.5 transition-colors"
+          className="absolute -top-1.5 -right-1.5 bg-ocean-elevated hover:bg-red-500/80 rounded-full p-0.5 transition-colors"
         >
           <X className="w-3 h-3" />
         </button>
@@ -67,11 +69,12 @@ export default function ImageUpload({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={disabled}
-        className="p-2 text-gray-400 hover:text-emerald-400 disabled:opacity-40 transition-colors"
+        className="p-2 text-content-muted hover:text-teal-text disabled:opacity-40 transition-colors"
         title="Upload clinical image"
       >
         <Paperclip className="w-5 h-5" />
       </button>
+      {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
     </>
   );
 }
