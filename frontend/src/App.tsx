@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { BottomTabBar } from "./components/layout/BottomTabBar";
 import { ConnectionBadge } from "./components/layout/ConnectionBadge";
+import { getProfile } from "./lib/profile";
 import Capture from "./pages/Capture";
 import History from "./pages/History";
+import Onboarding from "./pages/Onboarding";
 import { About } from "./pages/About";
 import QRConnect from "./pages/QRConnect";
 import { NotFound } from "./pages/NotFound";
@@ -32,10 +34,19 @@ function AppLayout() {
   );
 }
 
+function OnboardingGate() {
+  const profile = getProfile();
+  if (!profile) return <Onboarding />;
+  return <AppLayout />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <AppLayout />
+      <Routes>
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/*" element={<OnboardingGate />} />
+      </Routes>
     </BrowserRouter>
   );
 }
