@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Camera, RotateCcw } from "lucide-react";
 import { analyzeImage } from "../lib/analyze";
+import { saveAnalysis } from "../lib/db";
 import { ResultCard } from "../components/shared/ResultCard";
 import type { AnalyzeResponse } from "../types";
 
@@ -33,6 +34,7 @@ export default function Capture() {
       const response = await analyzeImage(file, species, module);
       setResult(response);
       setStatus("done");
+      saveAnalysis(file, response, species, module).catch(() => {});
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Analysis failed");
       setStatus("error");
