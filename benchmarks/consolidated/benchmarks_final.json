@@ -1,0 +1,121 @@
+{
+  "project": "Howl Vision — Gemma 4 Good Hackathon",
+  "date": "2026-04-05",
+  "gpu": "NVIDIA RTX 4070 Ti SUPER (16GB VRAM)",
+
+  "vision_models": {
+    "canine_dermatology": {
+      "architecture": "EfficientNetV2-S (timm tf_efficientnetv2_s.in21k_ft_in1k)",
+      "input_size": "384x384",
+      "num_classes": 6,
+      "classes": ["demodicosis", "Dermatitis", "Fungal_infections", "Healthy", "Hypersensitivity_Allergic_Dermatitis", "ringworm"],
+      "checkpoint_size_mb": 192,
+      "test": {
+        "n": 433,
+        "accuracy": 0.940,
+        "accuracy_ci_95": [0.915, 0.958],
+        "f1_macro": 0.923
+      }
+    },
+    "feline_dermatology": {
+      "architecture": "EfficientNetV2-S (timm tf_efficientnetv2_s.in21k_ft_in1k)",
+      "input_size": "384x384",
+      "num_classes": 4,
+      "classes": ["Flea_Allergy", "Health", "Ringworm", "Scabies"],
+      "checkpoint_size_mb": 233,
+      "training": {
+        "train_images": 699,
+        "valid_images": 148,
+        "epochs": 30,
+        "early_stop_epoch": 16,
+        "augmentation": ["RandomResizedCrop(0.7-1.0)", "HFlip", "VFlip", "ColorJitter", "Rotation(15)"],
+        "optimizer": "AdamW lr=1e-4",
+        "scheduler": "CosineAnnealing"
+      },
+      "test": {
+        "n": 152,
+        "accuracy": 0.9013,
+        "accuracy_ci_95": [0.8436, 0.9393],
+        "f1_macro": 0.902,
+        "cohen_kappa": 0.868,
+        "f1_per_class": {
+          "Flea_Allergy": 0.904,
+          "Health": 0.923,
+          "Ringworm": 0.861,
+          "Scabies": 0.919
+        },
+        "confusion_matrix": [[33,0,5,0],[1,36,1,0],[1,1,34,2],[0,3,1,34]]
+      }
+    },
+    "blood_parasites": {
+      "architecture": "EfficientNetV2-S (timm tf_efficientnetv2_s.in21k_ft_in1k)",
+      "input_size": "384x384",
+      "num_classes": 8,
+      "classes": ["Babesia", "Leishmania", "Leukocyte", "Plasmodium", "RBCs", "Toxoplasma", "Trichomonad", "Trypanosome"],
+      "note": "6 parasites + 2 cellular controls (RBCs, Leukocyte). Report parasite-only metrics separately.",
+      "checkpoint_size_mb": 192,
+      "test": {
+        "n": 3032,
+        "accuracy": 0.9987,
+        "f1_macro": 0.997
+      }
+    }
+  },
+
+  "onnx_offline": {
+    "model": "canine_dermatology INT8",
+    "format": "ONNX INT8 (onnxruntime quantize_dynamic)",
+    "fp32_size_mb": 77,
+    "int8_size_mb": 20,
+    "compression_ratio": "3.85x",
+    "parity_check": {
+      "fp32_vs_pytorch": {"n": 433, "disagreements": 0, "max_logit_delta": "<1e-3"},
+      "int8_spot_check": {"n": 50, "disagreements": 0}
+    },
+    "latency_cpu_desktop": {
+      "fp32_median_ms": 193.2,
+      "fp32_p95_ms": 231.7,
+      "int8_median_ms": 222.6,
+      "int8_p95_ms": 267.2,
+      "note": "CPU inference (onnxruntime). INT8 slightly slower on desktop due to dequantize overhead."
+    },
+    "latency_mobile_browser": {
+      "int8_median_ms": 675,
+      "backend": "onnxruntime-web WASM",
+      "device": "Android mid-range phone",
+      "note": "GO decision threshold was <5000ms. 675ms is well within budget."
+    }
+  },
+
+  "sft_fine_tuning": {
+    "model": "Gemma 4 E4B",
+    "framework": "Unsloth + QLoRA 4-bit",
+    "method": "Narrative SFT (20-30 templates per class, 6 classes)",
+    "result": "PARKED — delta=0.0",
+    "p0_comparison": {
+      "n": 120,
+      "n_per_class": 15,
+      "seed": 42,
+      "narrative_f1_macro": 0.873,
+      "base_f1_macro": 0.873,
+      "delta": 0.0,
+      "conclusion": "Base Gemma 4 E4B matches fine-tuned adapter. SFT did not improve classification accuracy.",
+      "honest_finding": "Published as-is. Pipeline value for Unsloth track."
+    }
+  },
+
+  "rag": {
+    "vectors": 21560,
+    "sources": 7,
+    "embedder": "SapBERT 768d",
+    "vector_db": "Qdrant 1.11",
+    "indexing_time_s": 27
+  },
+
+  "pharma": {
+    "drug_dosages": 38,
+    "drug_interactions": 14,
+    "species": ["dog", "cat"],
+    "source": "Merck Veterinary Manual, FDA/CVM"
+  }
+}
