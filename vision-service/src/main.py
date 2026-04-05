@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from src.api import routes
 from src.models.dermatology import DermatologyModel
+from src.models.feline_dermatology import FelineDermatologyModel
 from src.models.parasites import ParasitesModel
 from src.models.segmentation import SegmentationModel
 from src.rag.embedder import SapBERTEmbedder
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
     logger.info("Loading vision models...")
 
     routes.dermatology_model = DermatologyModel()
+    routes.feline_dermatology_model = FelineDermatologyModel()
     routes.parasites_model = ParasitesModel()
     routes.segmentation_model = SegmentationModel()
 
@@ -27,6 +29,12 @@ async def lifespan(app: FastAPI):
         logger.info("Dermatology model loaded")
     except Exception:
         logger.exception("Failed to load dermatology model")
+
+    try:
+        routes.feline_dermatology_model.load()
+        logger.info("Feline dermatology model loaded")
+    except Exception:
+        logger.exception("Failed to load feline dermatology model")
 
     try:
         routes.parasites_model.load()
@@ -67,6 +75,7 @@ async def health():
         "service": "vision-service",
         "models": {
             "dermatology": routes.dermatology_model.loaded if routes.dermatology_model else False,
+            "feline_dermatology": routes.feline_dermatology_model.loaded if routes.feline_dermatology_model else False,
             "parasites": routes.parasites_model.loaded if routes.parasites_model else False,
             "segmentation": routes.segmentation_model.loaded if routes.segmentation_model else False,
             "sapbert": routes.sapbert_embedder.loaded if routes.sapbert_embedder else False,

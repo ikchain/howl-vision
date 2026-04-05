@@ -4,6 +4,7 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from PIL import Image
 
 from src.models.dermatology import DermatologyModel
+from src.models.feline_dermatology import FelineDermatologyModel
 from src.models.parasites import ParasitesModel
 from src.models.segmentation import SegmentationModel
 from src.rag.embedder import SapBERTEmbedder
@@ -14,6 +15,7 @@ router = APIRouter(prefix="/vision")
 
 # Singletons — populated by main.py on startup
 dermatology_model: DermatologyModel | None = None
+feline_dermatology_model: FelineDermatologyModel | None = None
 parasites_model: ParasitesModel | None = None
 segmentation_model: SegmentationModel | None = None
 sapbert_embedder: SapBERTEmbedder | None = None
@@ -27,7 +29,15 @@ def _read_image(file: UploadFile) -> Image.Image:
 
 
 @router.post("/dermatology")
-async def classify_dermatology(file: UploadFile = File(...)):
+async def classify_dermatology(
+    file: UploadFile = File(...),
+    species: str = Query("canine", pattern="^(canine|feline)$"),
+):
+    if species == "feline":
+        if not feline_dermatology_model or not feline_dermatology_model.loaded:
+            raise HTTPException(status_code=503, detail="Feline dermatology model not loaded")
+        image = _read_image(file)
+        return feline_dermatology_model.predict(image)
     if not dermatology_model or not dermatology_model.loaded:
         raise HTTPException(status_code=503, detail="Dermatology model not loaded")
     image = _read_image(file)

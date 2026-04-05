@@ -3,6 +3,7 @@ import os
 # Paths — montados via docker-compose volume
 MODELS_DIR = os.getenv("VISION_MODELS_DIR", "/app/models/vision")
 DERMATOLOGY_CHECKPOINT = os.path.join(MODELS_DIR, "vet_dermatology.pt")
+FELINE_DERMATOLOGY_CHECKPOINT = os.path.join(MODELS_DIR, "vet_feline_dermatology.pt")
 PARASITES_CHECKPOINT = os.path.join(MODELS_DIR, "vet_parasites.pt")
 SEGMENTATION_CHECKPOINT = os.path.join(MODELS_DIR, "vet_segmentation.pt")
 

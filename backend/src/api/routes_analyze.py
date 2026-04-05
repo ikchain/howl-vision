@@ -40,7 +40,7 @@ async def analyze(
 
     # 1. Classification via vision service — species is NOT part of the URL,
     #    it's passed downstream for narrative context only.
-    vision_url = f"{settings.vision_service_url.rstrip('/')}/vision/{module}"
+    vision_url = f"{settings.vision_service_url.rstrip('/')}/vision/{module}?species={species}"
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             files = {
