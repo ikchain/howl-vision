@@ -4,6 +4,7 @@ import { ConnectionBadge } from "./components/layout/ConnectionBadge";
 import Capture from "./pages/Capture";
 import History from "./pages/History";
 import { About } from "./pages/About";
+import QRConnect from "./pages/QRConnect";
 import { NotFound } from "./pages/NotFound";
 
 function AppLayout() {
@@ -22,6 +23,7 @@ function AppLayout() {
           <Route path="/capture" element={<Capture />} />
           <Route path="/history" element={<History />} />
           <Route path="/about" element={<About />} />
+          <Route path="/connect" element={<QRConnect />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
