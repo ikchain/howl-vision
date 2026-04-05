@@ -1,14 +1,17 @@
 import { getServerUrl } from "./connection";
-import { classifyImage, isModelLoaded, loadModel } from "./onnx";
 import { getTemplateNarrative } from "../data/templates";
 import type { AnalyzeResponse } from "../types";
 
-// Pre-load ONNX model in the background on module initialization.
-// The 20MB download happens once and is then cached by the service worker.
-loadModel().catch(() => {
-  // Failure is non-fatal at startup — the offline path will retry on demand
-  // and surface an explicit error if the model is still unavailable at that point.
-});
+// ONNX module loaded on demand — avoids ~20MB download until the offline
+// path is actually needed (dynamic import splits it into a separate chunk).
+let onnxModule: typeof import("./onnx") | null = null;
+
+async function getOnnx() {
+  if (!onnxModule) {
+    onnxModule = await import("./onnx");
+  }
+  return onnxModule;
+}
 
 // Urgency classification rules that mirror backend/src/clinical/urgency.py.
 // Duplicating these here is intentional: the offline path must be self-contained.
@@ -91,9 +94,10 @@ export async function analyzeImage(
     );
   }
 
-  if (!isModelLoaded()) {
+  const onnx = await getOnnx();
+  if (!onnx.isModelLoaded()) {
     try {
-      await loadModel();
+      await onnx.loadModel();
     } catch {
       throw new Error(
         "Offline model could not be loaded. Connect to a Clinic Hub for image analysis.",
@@ -101,7 +105,7 @@ export async function analyzeImage(
     }
   }
 
-  const classification = await classifyImage(image);
+  const classification = await onnx.classifyImage(image);
   const urgency = determineUrgency(classification.label, classification.confidence);
   const narrative = getTemplateNarrative(classification.label);
 

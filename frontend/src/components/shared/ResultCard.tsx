@@ -9,11 +9,18 @@ interface Props {
 }
 
 export function ResultCard({ result, previewUrl }: Props) {
-  const { classification, narrative, urgency, rag_matches } = result;
+  const { classification, narrative, urgency, rag_matches, source } = result;
   const lowConfidence = classification.confidence < 0.60;
+  const isOffline = source === "local_ai";
+
+  const borderClass = lowConfidence
+    ? "border-red-500/40"
+    : isOffline
+      ? "border-gray-500/40"
+      : "border-teal/40";
 
   return (
-    <div className={`rounded-xl border ${lowConfidence ? "border-red-500/40" : "border-ocean-elevated"} bg-ocean-surface overflow-hidden`}>
+    <div className={`rounded-xl border ${borderClass} bg-ocean-surface overflow-hidden`}>
       {/* Header: image + classification */}
       <div className="flex gap-4 p-4">
         <img src={previewUrl} alt="Analyzed" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
@@ -32,7 +39,7 @@ export function ResultCard({ result, previewUrl }: Props) {
       </div>
 
       {/* Narrative */}
-      <div className={`border-t ${lowConfidence ? "border-red-500/20" : "border-teal/30"} p-4`}>
+      <div className={`border-t ${lowConfidence ? "border-red-500/20" : isOffline ? "border-gray-500/20" : "border-teal/30"} p-4`}>
         <MarkdownRenderer content={narrative} streaming={false} />
       </div>
 
