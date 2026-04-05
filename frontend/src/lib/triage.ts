@@ -118,12 +118,15 @@ export async function triage(species: string, symptoms: string): Promise<TriageR
   return offlineTriage(symptoms);
 }
 
+const SPECIES_TO_PHARMA: Record<string, string> = { canine: "dog", feline: "cat" };
+
 export function lookupDrug(drugName: string, species?: string): DrugInfo[] {
   const needle = drugName.toLowerCase();
+  const pharmaSpecies = species ? SPECIES_TO_PHARMA[species] ?? species : undefined;
   return pharmaData.drugs.filter(
     (d) =>
       d.drug.toLowerCase().includes(needle) &&
-      (!species || d.species === species),
+      (!pharmaSpecies || d.species === pharmaSpecies),
   ) as DrugInfo[];
 }
 

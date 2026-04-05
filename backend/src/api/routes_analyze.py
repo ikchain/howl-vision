@@ -64,9 +64,13 @@ async def analyze(
             detail="Vision service timed out.",
         ) from e
 
-    label: str = vision_data.get("prediction", "unknown")
-    confidence: float = vision_data.get("confidence", 0.0)
-    differentials: list = vision_data.get("differentials", [])
+    # Vision service returns {"predictions": [{class, probability, ...}, ...]}
+    preds = vision_data.get("predictions", [])
+    label: str = preds[0]["class"] if preds else "unknown"
+    confidence: float = preds[0]["probability"] if preds else 0.0
+    differentials: list = [
+        {"label": p["class"], "confidence": p["probability"]} for p in preds[1:4]
+    ]
     urgency = determine_urgency(label, confidence)
 
     # 2. Narrative via Gemma 4

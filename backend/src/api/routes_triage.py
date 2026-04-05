@@ -18,8 +18,15 @@ class TriageRequest(BaseModel):
     symptoms: str = Field(..., min_length=5, max_length=2000)
 
 
+class PossibleCondition(BaseModel):
+    name: str
+    probability: float
+    urgency: str
+
+
 class TriageResponse(BaseModel):
     triage_id: str
+    possible_conditions: list[PossibleCondition] = []
     recommendation: str
     source: str
 

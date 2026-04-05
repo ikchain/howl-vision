@@ -3,7 +3,7 @@
 EMERGENCY_CLASSES = {"Leishmania", "Plasmodium", "Toxoplasma", "Trypanosome"}
 SOON_CLASSES = {"demodicosis", "Scabies", "ringworm", "Fungal_infections", "Babesia", "Trichomonad"}
 MONITOR_CLASSES = {"Dermatitis", "Hypersensitivity_Allergic_Dermatitis", "Flea_Allergy"}
-HEALTHY_CLASSES = {"Healthy", "RBCs", "Leukocyte"}
+HEALTHY_CLASSES = {"Healthy", "Health", "RBCs", "Leukocyte"}
 
 
 def determine_urgency(label: str, confidence: float) -> str:

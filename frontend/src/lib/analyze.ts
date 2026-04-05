@@ -35,7 +35,7 @@ const URGENCY_MONITOR = new Set([
   "Hypersensitivity_Allergic_Dermatitis",
   "Flea_Allergy",
 ]);
-const URGENCY_HEALTHY = new Set(["Healthy", "RBCs", "Leukocyte"]);
+const URGENCY_HEALTHY = new Set(["Healthy", "Health", "RBCs", "Leukocyte"]);
 
 const CONFIDENCE_THRESHOLD_HEALTHY = 0.85;
 const CONFIDENCE_THRESHOLD_MINIMUM = 0.7;
@@ -74,6 +74,7 @@ export async function analyzeImage(
       const res = await fetch(`${serverUrl}/api/v1/analyze`, {
         method: "POST",
         body: form,
+        signal: AbortSignal.timeout(60000),
       });
 
       if (res.ok) {

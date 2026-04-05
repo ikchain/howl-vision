@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     postgres_user: str = "howl"
     postgres_password: str = "changeme_in_production"
 
-    cors_origins: str = "http://localhost:20000"
+    cors_origins: str = "*"
 
     agent_max_iterations: int = 3
     agent_vision_confidence_threshold: float = 0.6
