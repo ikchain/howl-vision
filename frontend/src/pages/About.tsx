@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { MessageSquare, ScanLine, Database, ChevronRight } from "lucide-react";
+import type { BeforeInstallPromptEvent } from "../types";
 
 const FEATURES = [
   {
@@ -29,6 +31,18 @@ const METRICS = [
 const PIPELINE = ["Clinical Image", "Vision Models", "Gemma 4 E4B", "Clinical Report"];
 
 export function About() {
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
   return (
     <div className="min-h-screen bg-ocean-deep text-content-primary flex flex-col">
       {/* Hero */}
@@ -57,6 +71,16 @@ export function About() {
           >
             Try it now &rarr;
           </Link>
+          {installPrompt && (
+            <button
+              onClick={() => {
+                installPrompt.prompt();
+              }}
+              className="px-4 py-2 bg-teal rounded-lg text-sm font-semibold text-white hover:bg-teal-hover transition-colors ml-3"
+            >
+              Install App
+            </button>
+          )}
         </div>
       </section>
 
