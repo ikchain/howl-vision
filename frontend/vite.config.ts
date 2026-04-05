@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "logo-white.svg", "logo-color.svg"],
+      includeAssets: ["favicon.svg", "logo-white.svg", "logo-color.svg", "models/dermatology_int8.onnx"],
       manifest: {
         name: "Howl Vision — One Health AI",
         short_name: "Howl Vision",
@@ -23,7 +23,10 @@ export default defineConfig({
       },
       workbox: {
         // Only cache static build artifacts — API responses must never be cached
-        globPatterns: ["**/*.{js,css,html,svg,woff2,json}"],
+        globPatterns: ["**/*.{js,css,html,svg,woff2,json,onnx}"],
+        // Raised from the 2MB default to accommodate the 20MB ONNX model.
+        // The model is precached so offline inference works after first load.
+        maximumFileSizeToCacheInBytes: 25 * 1024 * 1024,
       },
     }),
   ],
