@@ -73,3 +73,36 @@ export interface CasesSearchResponse {
   results: CaseResult[];
   count: number;
 }
+
+// -- Analyze --
+
+export interface Classification {
+  label: string;
+  confidence: number;
+  differentials: Array<{ label: string; confidence: number }>;
+}
+
+export interface AnalyzeResponse {
+  analysis_id: string;
+  classification: Classification;
+  narrative: string;
+  urgency: "emergency" | "soon" | "monitor" | "healthy";
+  rag_matches: Array<{ case_id: string; similarity: number; summary: string }>;
+  pharma: Array<{ drug: string; dosage: string; warnings: string }>;
+  source: string;
+}
+
+// -- History --
+
+export interface AnalysisRecord {
+  id: string;
+  timestamp: number;
+  species: "canine" | "feline";
+  module: "dermatology" | "parasites";
+  thumbnailDataUrl: string;
+  classification: string;
+  confidence: number;
+  urgency: "emergency" | "soon" | "monitor" | "healthy";
+  narrativeSummary: string;
+  fullResult?: AnalyzeResponse;
+}
