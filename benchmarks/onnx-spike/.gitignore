@@ -1,0 +1,4 @@
+# Generated ONNX model artifacts — large binaries, not for git.
+# To share: upload to HuggingFace Hub or object storage.
+*.onnx
+*.onnx.data

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dermatology ONNX — Browser Inference Test</title>
+  <!--
+    Spike: go/no-go for offline dermatology classification in WASM.
+
+    Test on a real device (phone/tablet) to measure latency under mobile
+    hardware constraints. Desktop numbers are not representative.
+
+    ONNX Runtime Web v1.20+ is required for opset 18 support.
+    Backend: wasm (works offline, no WebGL dependency).
+
+    CLASS_NAMES order MUST match DermatologyModel.CLASS_NAMES in
+    vision-service/src/models/dermatology.py -- NOT alphabetical order.
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 0.25rem; color: #7dd3fc; }
+    .subtitle { font-size: 0.8rem; color: #64748b; margin-bottom: 2rem; }
+    .card {
+      background: #1e2330;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 1rem;
+    }
+    label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem; }
+    input[type="file"] {
+      display: block;
+      width: 100%;
+      padding: 0.6rem;
+      background: #0f1117;
+      border: 1px dashed #4a5568;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      background: #0f1117;
+      border: 1px solid #2d3748;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 0.85rem;
+      margin-top: 0.25rem;
+    }
+    #preview {
+      display: none;
+      width: 100%;
+      max-height: 240px;
+      object-fit: contain;
+      border-radius: 8px;
+      margin-top: 1rem;
+      background: #0f1117;
+    }
+    #status {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-top: 0.75rem;
+      min-height: 1.2em;
+    }
+    #results { display: none; }
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 1rem;
+    }
+    .result-header .top-class {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #34d399;
+    }
+    .result-header .latency {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    .bar-row { margin-bottom: 0.6rem; }
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-bottom: 0.2rem;
+    }
+    .bar-bg {
+      height: 6px;
+      background: #2d3748;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: #38bdf8;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .bar-fill.top { background: #34d399; }
+    .note {
+      font-size: 0.75rem;
+      color: #475569;
+      margin-top: 0.5rem;
+      line-height: 1.5;
+    }
+    .warn { color: #f59e0b; }
+  </style>
+</head>
+<body>
+  <h1>Dermatology ONNX Spike</h1>
+  <p class="subtitle">Browser inference test — ONNX Runtime Web (WASM backend)</p>
+
+  <div class="card">
+    <label>Model</label>
+    <select id="modelSelect">
+      <option value="dermatology_int8.onnx" selected>INT8 (~20 MB, faster)</option>
+      <option value="dermatology_fp32.onnx">FP32 (~77 MB, baseline)</option>
+    </select>
+
+    <label style="margin-top:1rem;">Image</label>
+    <input type="file" id="imageInput" accept="image/*">
+    <img id="preview" alt="Preview">
+    <div id="status">Waiting for model load...</div>
+  </div>
+
+  <div class="card" id="results">
+    <div class="result-header">
+      <span class="top-class" id="topClass">–</span>
+      <span class="latency" id="latencyDisplay">–</span>
+    </div>
+    <div id="bars"></div>
+    <p class="note" id="modelNote"></p>
+  </div>
+
+  <div class="card">
+    <p class="note">
+      <strong class="warn">Test target:</strong> measure latency on a real mobile device.<br>
+      Desktop numbers do not represent field hardware.<br><br>
+      <strong>GO criteria:</strong> latency &lt; 3 000 ms on mid-range Android (2022+).<br>
+      <strong>FAIL criteria:</strong> latency &gt; 5 000 ms or class disagreement vs PyTorch.
+    </p>
+  </div>
+
+  <canvas id="offscreen" width="384" height="384" style="display:none;"></canvas>
+
+  <script>
+    /*
+     * CLASS_NAMES: must match DermatologyModel.CLASS_NAMES in
+     * vision-service/src/models/dermatology.py — index order is NOT alphabetical.
+     *
+     * WARNING: the task spec listed them alphabetically sorted; that is WRONG.
+     * The correct order (from the Python source of truth) is below.
+     */
+    const CLASS_NAMES = [
+      "demodicosis",
+      "Dermatitis",
+      "Fungal_infections",
+      "Healthy",
+      "Hypersensitivity_Allergic_Dermatitis",
+      "ringworm",
+    ];
+
+    // ImageNet normalization — must match IMAGENET_MEAN/IMAGENET_STD in config.py
+    const IMAGENET_MEAN = [0.485, 0.456, 0.406];
+    const IMAGENET_STD  = [0.229, 0.224, 0.225];
+    const INPUT_SIZE    = 384;
+
+    const statusEl     = document.getElementById("status");
+    const modelSelect  = document.getElementById("modelSelect");
+    const imageInput   = document.getElementById("imageInput");
+    const preview      = document.getElementById("preview");
+    const resultsCard  = document.getElementById("results");
+    const topClassEl   = document.getElementById("topClass");
+    const latencyEl    = document.getElementById("latencyDisplay");
+    const barsEl       = document.getElementById("bars");
+    const modelNoteEl  = document.getElementById("modelNote");
+    const canvas       = document.getElementById("offscreen");
+    const ctx          = canvas.getContext("2d");
+
+    let session = null;
+    let loadedModelName = null;
+
+    // --- WASM path: serve locally if not on a web server.
+    // ort.env.wasm.wasmPaths can point to a local dir if CDN is unavailable.
+    ort.env.wasm.numThreads = 1; // single-threaded for broadest mobile compat
+
+    async function loadModel(modelFile) {
+      statusEl.textContent = `Loading ${modelFile} …`;
+      session = null;
+      loadedModelName = null;
+
+      const t0 = performance.now();
+      try {
+        session = await ort.InferenceSession.create(modelFile, {
+          executionProviders: ["wasm"],
+          graphOptimizationLevel: "all",
+        });
+        const loadMs = (performance.now() - t0).toFixed(0);
+        loadedModelName = modelFile;
+        statusEl.textContent = `Model loaded in ${loadMs} ms. Select an image.`;
+      } catch (err) {
+        statusEl.textContent = `ERROR loading model: ${err.message}`;
+        console.error(err);
+      }
+    }
+
+    /*
+     * Preprocess: resize to 384x384 via canvas, read RGBA pixels, convert to
+     * CHW float32 with ImageNet normalization.
+     *
+     * uint8 pixel range [0, 255] -> float [0.0, 1.0] -> normalized CHW tensor.
+     */
+    function preprocessImage(imgElement) {
+      ctx.drawImage(imgElement, 0, 0, INPUT_SIZE, INPUT_SIZE);
+      const imageData = ctx.getImageData(0, 0, INPUT_SIZE, INPUT_SIZE);
+      const pixels = imageData.data; // RGBA interleaved, uint8
+
+      // CHW layout: [1, 3, 384, 384]
+      const tensor = new Float32Array(3 * INPUT_SIZE * INPUT_SIZE);
+      const stride = INPUT_SIZE * INPUT_SIZE;
+
+      for (let i = 0; i < INPUT_SIZE * INPUT_SIZE; i++) {
+        const r = pixels[i * 4 + 0] / 255.0;
+        const g = pixels[i * 4 + 1] / 255.0;
+        const b = pixels[i * 4 + 2] / 255.0;
+
+        tensor[0 * stride + i] = (r - IMAGENET_MEAN[0]) / IMAGENET_STD[0];
+        tensor[1 * stride + i] = (g - IMAGENET_MEAN[1]) / IMAGENET_STD[1];
+        tensor[2 * stride + i] = (b - IMAGENET_MEAN[2]) / IMAGENET_STD[2];
+      }
+
+      return new ort.Tensor("float32", tensor, [1, 3, INPUT_SIZE, INPUT_SIZE]);
+    }
+
+    function softmax(logits) {
+      const maxVal = Math.max(...logits);
+      const exps = logits.map(v => Math.exp(v - maxVal));
+      const sum = exps.reduce((a, b) => a + b, 0);
+      return exps.map(v => v / sum);
+    }
+
+    async function runInference(imgElement) {
+      if (!session) {
+        statusEl.textContent = "Model not loaded yet. Please wait.";
+        return;
+      }
+
+      statusEl.textContent = "Preprocessing…";
+      const inputTensor = preprocessImage(imgElement);
+
+      statusEl.textContent = "Running inference…";
+      const t0 = performance.now();
+      let outputs;
+      try {
+        outputs = await session.run({ input: inputTensor });
+      } catch (err) {
+        statusEl.textContent = `Inference error: ${err.message}`;
+        console.error(err);
+        return;
+      }
+      const inferenceMs = (performance.now() - t0).toFixed(1);
+
+      const logits = Array.from(outputs["logits"].data);
+      const probs = softmax(logits);
+
+      // Sort by probability descending
+      const ranked = CLASS_NAMES.map((name, idx) => ({ name, prob: probs[idx] }))
+        .sort((a, b) => b.prob - a.prob);
+
+      // Render results
+      topClassEl.textContent = ranked[0].name.replace(/_/g, " ");
+      latencyEl.textContent  = `${inferenceMs} ms inference`;
+
+      barsEl.innerHTML = "";
+      ranked.forEach((item, i) => {
+        const pct = (item.prob * 100).toFixed(1);
+        const row = document.createElement("div");
+        row.className = "bar-row";
+        row.innerHTML = `
+          <div class="bar-label">
+            <span>${item.name.replace(/_/g, " ")}</span>
+            <span>${pct}%</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill ${i === 0 ? "top" : ""}" style="width:${pct}%"></div>
+          </div>`;
+        barsEl.appendChild(row);
+      });
+
+      const goFail = parseFloat(inferenceMs) > 5000 ? "FAIL" :
+                     parseFloat(inferenceMs) > 3000 ? "WARN" : "GO";
+      modelNoteEl.innerHTML = `Model: <strong>${loadedModelName}</strong> &nbsp;|&nbsp;` +
+        `Status: <strong class="${goFail === "FAIL" ? "warn" : ""}">${goFail}</strong> (${inferenceMs} ms)`;
+
+      statusEl.textContent = "Done.";
+      resultsCard.style.display = "block";
+    }
+
+    // --- Event handlers ---
+
+    modelSelect.addEventListener("change", () => {
+      loadModel(modelSelect.value);
+    });
+
+    imageInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const url = URL.createObjectURL(file);
+      preview.src = url;
+      preview.style.display = "block";
+
+      preview.onload = async () => {
+        URL.revokeObjectURL(url);
+        await runInference(preview);
+      };
+    });
+
+    // Load default model on page open
+    loadModel(modelSelect.value);
+  </script>
+</body>
+</html>
