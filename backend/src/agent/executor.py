@@ -166,3 +166,61 @@ async def execute_tool_calls(
 
     pairs = await asyncio.gather(*[_execute_one(c) for c in tool_calls])
     return dict(pairs)
+
+
+async def generate_narrative(
+    label: str,
+    confidence: float,
+    differentials: list,
+    species: str,
+    module: str,
+) -> str:
+    """Generate a clinical narrative from classification results using Gemma 4.
+
+    Runs the ollama sync call in the default executor so it doesn't block the
+    event loop — the ollama package does not expose an async interface.
+    """
+    diff_text = (
+        ", ".join(d.get("label", "") for d in differentials[:3])
+        if differentials
+        else "none"
+    )
+    prompt = (
+        f"Species: {species}. Module: {module}.\n"
+        f"Automated classification result: {label} ({confidence * 100:.0f}% model score).\n"
+        f"Top differentials: {diff_text}.\n\n"
+        f"Provide a structured clinical assessment: findings, differential diagnosis, "
+        f"and recommended next steps. Be concise. Use veterinary terminology. "
+        f"State that this classification requires veterinary confirmation."
+    )
+
+    def _call_ollama() -> str:
+        import ollama
+
+        response = ollama.chat(
+            model=settings.ollama_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are Howl Vision, a veterinary AI copilot. "
+                        "Provide structured clinical assessments based on automated "
+                        "classification results. Always state that findings require "
+                        "veterinary confirmation. Never use the word 'diagnosis' — "
+                        "use 'classification result' or 'assessment'."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+        )
+        return response["message"]["content"]
+
+    try:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _call_ollama)
+    except Exception as e:
+        logger.error("Narrative generation failed: %s", e)
+        return (
+            f"**Classification:** {label} ({confidence * 100:.0f}% model score)\n\n"
+            "*Narrative generation unavailable. Please consult a veterinarian.*"
+        )
