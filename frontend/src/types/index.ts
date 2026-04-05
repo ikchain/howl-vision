@@ -106,3 +106,10 @@ export interface AnalysisRecord {
   narrativeSummary: string;
   fullResult?: AnalyzeResponse;
 }
+
+// -- PWA --
+
+export interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
