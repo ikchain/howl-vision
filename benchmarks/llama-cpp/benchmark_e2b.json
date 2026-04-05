@@ -1,0 +1,207 @@
+{
+  "metadata": {
+    "date": "2026-04-05T21:25:50.934883",
+    "llama_cpp_commit": "761797f",
+    "model": "Gemma 4 E2B-it",
+    "model_params": "4.65B",
+    "quantization": "Q4_K_M",
+    "bits_per_weight": 5.32,
+    "format": "GGUF",
+    "source_repo": "unsloth/gemma-4-E2B-it-GGUF",
+    "gpu": "NVIDIA RTX 4070 Ti SUPER",
+    "gpu_vram_mib": 16376,
+    "gpu_compute_capability": "8.9",
+    "cpu": "AMD Ryzen 9 9900X 12-Core",
+    "framework": "llama.cpp",
+    "hackathon_track": "llama.cpp ($10K)"
+  },
+  "model_info": {
+    "file": "gemma-4-E2B-it-Q4_K_M.gguf",
+    "size_bytes": 3106731392,
+    "size_mb": 2962.8,
+    "size_gb": 2.89,
+    "architecture": "gemma4",
+    "context_train": 131072,
+    "n_layers": 35,
+    "n_embd": 1536,
+    "n_head": 8,
+    "n_head_kv": 1,
+    "vocab_size": 262144,
+    "sliding_window": 512
+  },
+  "benchmarks": {
+    "pp512_tg128_fa": {
+      "prompt_processing": {
+        "n_prompt": 512,
+        "avg_tokens_per_sec": 15163.4,
+        "stddev_tokens_per_sec": 788.5,
+        "samples_tokens_per_sec": [
+          14253.4,
+          15642.5,
+          15594.4
+        ],
+        "avg_time_ms": 33.83,
+        "flash_attn": true
+      },
+      "generation": {
+        "n_gen": 128,
+        "avg_tokens_per_sec": 240.5,
+        "stddev_tokens_per_sec": 3.5,
+        "samples_tokens_per_sec": [
+          242.6,
+          242.4,
+          236.4
+        ],
+        "avg_time_ms": 532.37,
+        "flash_attn": true
+      },
+      "description": "512-token prompt, 128-token generation, flash attention ON"
+    },
+    "pp128_tg256_fa": {
+      "prompt_processing": {
+        "n_prompt": 128,
+        "avg_tokens_per_sec": 8717.1,
+        "stddev_tokens_per_sec": 978.8,
+        "samples_tokens_per_sec": [
+          7605.2,
+          9097.9,
+          9448.3
+        ],
+        "avg_time_ms": 14.82,
+        "flash_attn": true
+      },
+      "generation": {
+        "n_gen": 256,
+        "avg_tokens_per_sec": 240.5,
+        "stddev_tokens_per_sec": 5.5,
+        "samples_tokens_per_sec": [
+          234.4,
+          244.9,
+          242.1
+        ],
+        "avg_time_ms": 1065.04,
+        "flash_attn": true
+      },
+      "description": "128-token prompt, 256-token generation, flash attention ON"
+    },
+    "pp1024_tg128_fa": {
+      "prompt_processing": {
+        "n_prompt": 1024,
+        "avg_tokens_per_sec": 14647.3,
+        "stddev_tokens_per_sec": 77.4,
+        "samples_tokens_per_sec": [
+          14582.5,
+          14733,
+          14626.5
+        ],
+        "avg_time_ms": 69.91,
+        "flash_attn": true
+      },
+      "generation": {
+        "n_gen": 128,
+        "avg_tokens_per_sec": 225.1,
+        "stddev_tokens_per_sec": 3.1,
+        "samples_tokens_per_sec": [
+          221.7,
+          225.6,
+          227.9
+        ],
+        "avg_time_ms": 568.75,
+        "flash_attn": true
+      },
+      "description": "1024-token prompt, 128-token generation, flash attention ON"
+    },
+    "pp2048_tg128_fa": {
+      "prompt_processing": {
+        "n_prompt": 2048,
+        "avg_tokens_per_sec": 15858.0,
+        "stddev_tokens_per_sec": 208.0,
+        "samples_tokens_per_sec": [
+          15981.2,
+          15975,
+          15617.9
+        ],
+        "avg_time_ms": 129.16,
+        "flash_attn": true
+      },
+      "generation": {
+        "n_gen": 128,
+        "avg_tokens_per_sec": 243.7,
+        "stddev_tokens_per_sec": 4.1,
+        "samples_tokens_per_sec": [
+          239.0,
+          246.2,
+          246.0
+        ],
+        "avg_time_ms": 525.26,
+        "flash_attn": true
+      },
+      "description": "2048-token prompt, 128-token generation, flash attention ON"
+    },
+    "pp512_tg128_no_fa": {
+      "prompt_processing": {
+        "n_prompt": 512,
+        "avg_tokens_per_sec": 14459.4,
+        "stddev_tokens_per_sec": 1057.2,
+        "samples_tokens_per_sec": [
+          13238.9,
+          15048.4,
+          15090.8
+        ],
+        "avg_time_ms": 35.54,
+        "flash_attn": false
+      },
+      "generation": {
+        "n_gen": 128,
+        "avg_tokens_per_sec": 236.1,
+        "stddev_tokens_per_sec": 10.6,
+        "samples_tokens_per_sec": [
+          240.3,
+          244.0,
+          224.1
+        ],
+        "avg_time_ms": 542.82,
+        "flash_attn": false
+      },
+      "description": "512-token prompt, 128-token generation, flash attention OFF"
+    }
+  },
+  "generation_test": {
+    "prompt_type": "veterinary diagnostic scenario",
+    "max_tokens": 256,
+    "context_size": 2048,
+    "temperature": 0.7,
+    "flash_attn": true,
+    "prompt_processing_tokens_per_sec": 1290.3,
+    "generation_tokens_per_sec": 231.4
+  },
+  "memory_usage": {
+    "gpu": {
+      "total_vram_mib": 15940,
+      "free_after_load_mib": 7716,
+      "model_total_mib": 1946,
+      "model_weights_mib": 1407,
+      "kv_cache_mib": 24,
+      "compute_buffer_mib": 515
+    },
+    "host": {
+      "total_mib": 1782,
+      "model_weights_mib": 1756
+    },
+    "nvidia_smi_snapshot": {
+      "used": "6006 MiB",
+      "total": "16376 MiB",
+      "gpu_utilization": "92 %"
+    }
+  },
+  "summary": {
+    "prompt_processing_range_tokens_per_sec": "8717 - 15858",
+    "generation_range_tokens_per_sec": "225 - 244",
+    "flash_attn_pp_speedup": "1.05x",
+    "model_fits_in_vram": true,
+    "gpu_memory_used_mib": 1946,
+    "host_memory_used_mib": 1782,
+    "verdict": "Gemma 4 E2B Q4_K_M runs fully on GPU with excellent performance for edge deployment",
+    "flash_attn_gen_speedup": "1.02x"
+  }
+}
