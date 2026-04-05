@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added (2026-04-05)
+- **One Health Pivot :** PWA mobile-first with 3 modes (offline text, offline ONNX, server). BottomTabBar, QR Connect (jsQR), Onboarding (3 profiles), ConnectionBadge, Capture with species/module selector, IndexedDB history, ONNX INT8 browser inference (675ms), offline triage (500 symptoms + 38 pharma) — `ab6c264..c5aad57`
+- **Feline Dermatology Model :** EfficientNetV2-S retrained 58%→90.1% (F1=0.902, n=152). Training script with augmentation, Wilson CIs, early stopping — `56c5978`
+- **HuggingFace Models :** 3 models published: ikchain/vet-dermatology-canine, vet-dermatology-feline, vet-parasites-blood
+- **llama.cpp Benchmark :** E2B Q4_K_M: 240 t/s gen, 15K t/s PP, 1.9GB VRAM on RTX 4070 Ti SUPER — `cd04a1f`
+- **Consolidated Benchmarks :** benchmarks_final.json with all metrics (vision + ONNX + SFT + llama.cpp) — `82c08ab..a6e3df2`
+- **Backend endpoints:** POST /api/v1/analyze (FormData), POST /api/v1/triage (JSON), GET /api/v1/qr — `62cabdf`
+
+### Fixed (2026-04-05)
+- **Vision response contract (C1):** Backend now correctly reads predictions array from vision service — `17ae97c`
+- **Triage response contract (C2):** Added possible_conditions to TriageResponse — `17ae97c`
+- **Feline urgency class (C3):** Added "Health" to HEALTHY_CLASSES in both backend and frontend — `17ae97c`
+- **CORS for QR mobile (W1):** Wildcard CORS for LAN device connections — `17ae97c`
+- **Analyze timeout (W4):** 60s AbortSignal on /api/v1/analyze fetch — `17ae97c`
+- **Pharma species mapping (W6):** canine→dog, feline→cat in lookupDrug — `17ae97c`
+- **ONNX lazy load:** Dynamic import() instead of eager 20MB load on module init — `c5aad57`
+- **ResultCard source distinction:** Gray border (local_ai) vs teal (server) — `c5aad57`
+
+### Changed (2026-04-05)
+- **Vision Service:** 3→4 models (added feline dermatology with species dispatch on /dermatology?species=)
+- **Frontend routing:** Added /connect (QR), /onboarding. Onboarding gate before main app
+- **Benchmarks README:** Clarified P0 comparison as definitive, historical files documented
+
 ### Added (2026-04-04)
 - **Vision Validation :** Formal held-out test eval with pre-registered protocol. Derma: 94.00% acc, F1=0.923, ECE=0.027 (n=433). Parasites: 99.87% acc, F1=0.997, ECE=0.002 (n=3032). 8 publishable figures + results.json — `f98c8a6`
 - **Frontend Deep Ocean :** Brand overhaul — wolf logo, Inter font, Deep Ocean palette (navy-teal), About landing page, responsive grids, favicon, OG meta tags, 404 page — `78a97ec..6ac2a15`
