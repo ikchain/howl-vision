@@ -1,6 +1,8 @@
 -- Drug dosages and interactions for veterinary use.
 -- Sources: Merck Veterinary Manual (open access), FDA/CVM public data.
 -- All drug names stored lowercase for case-insensitive lookup.
+-- IDEMPOTENT: Uses CREATE IF NOT EXISTS + ON CONFLICT DO NOTHING.
+-- Safe to run on every startup — required by backend lifespan handler.
 
 CREATE TABLE IF NOT EXISTS drug_dosages (
     id              SERIAL PRIMARY KEY,

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, RotateCcw } from "lucide-react";
 import { analyzeImage } from "../lib/analyze";
 import { saveAnalysis } from "../lib/db";
@@ -8,7 +8,7 @@ import type { AnalyzeResponse } from "../types";
 
 type Species = "canine" | "feline";
 type Module = "dermatology" | "parasites";
-type Status = "idle" | "analyzing" | "done" | "error";
+type Status = "idle" | "loading_model" | "analyzing" | "done" | "error";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -28,23 +28,41 @@ export default function Capture() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
+
+  // Revoke object URL on unmount to prevent memory leaks (W3)
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
 
   const handleFile = useCallback(async (file: File) => {
+    // Clear stale state from any previous analysis before validation
+    setResult(null);
+    setErrorMsg("");
+    setSaved(false);
+
     if (file.size > MAX_IMAGE_SIZE) {
       setErrorMsg("Image too large (max 5MB).");
       setStatus("error");
       return;
     }
-    setPreviewUrl(URL.createObjectURL(file));
-    setResult(null);
-    setErrorMsg("");
+    // Revoke previous URL before creating a new one
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const url = URL.createObjectURL(file);
+    previewUrlRef.current = url;
+    setPreviewUrl(url);
     setStatus("analyzing");
     try {
-      const response = await analyzeImage(file, species, module);
+      const response = await analyzeImage(file, species, module, setStatus);
       setResult(response);
       setStatus("done");
-      saveAnalysis(file, response, species, module).catch(() => {});
+      saveAnalysis(file, response, species, module)
+        .then(() => setSaved(true))
+        .catch((err) => console.warn("Failed to save analysis to history:", err));
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Analysis failed");
       setStatus("error");
@@ -52,11 +70,15 @@ export default function Capture() {
   }, [species, module]);
 
   function reset() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
     setStatus("idle");
     setPreviewUrl(null);
     setResult(null);
     setErrorMsg("");
+    setSaved(false);
   }
 
   return (
@@ -93,8 +115,12 @@ export default function Capture() {
             capture="environment"
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) handleFile(f);
-              e.target.value = "";
+              if (f) {
+                handleFile(f).finally(() => {
+                  // Clear after processing so the same file can be re-selected
+                  if (inputRef.current) inputRef.current.value = "";
+                });
+              }
             }}
             className="hidden"
           />
@@ -109,14 +135,14 @@ export default function Capture() {
         </>
       )}
 
-      {status === "analyzing" && (
+      {(status === "analyzing" || status === "loading_model") && (
         <div className="flex flex-col items-center gap-3 py-12">
           {previewUrl && (
             <img src={previewUrl} alt="Analyzing" className="max-h-48 rounded-xl object-contain" />
           )}
           <div className="flex items-center gap-2 text-sm text-teal-text">
             <div className="w-2 h-2 rounded-full bg-teal animate-pulse" />
-            Analyzing image...
+            {status === "loading_model" ? "Loading AI model..." : "Analyzing image..."}
           </div>
         </div>
       )}
@@ -124,13 +150,18 @@ export default function Capture() {
       {status === "done" && result && previewUrl && (
         <div className="space-y-3">
           <ResultCard result={result} previewUrl={previewUrl} />
-          <button
-            onClick={reset}
-            className="flex items-center gap-2 text-sm text-content-muted hover:text-teal-text transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Analyze another image
-          </button>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={reset}
+              className="flex items-center gap-2 text-sm text-content-muted hover:text-teal-text transition-colors"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Analyze another image
+            </button>
+            {saved && (
+              <span className="text-[10px] text-content-muted">Saved to history</span>
+            )}
+          </div>
         </div>
       )}
 

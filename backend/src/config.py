@@ -22,6 +22,9 @@ class Settings(BaseSettings):
 
     cors_origins: str = "*"
 
+    # QR URL generation only — actual bind port set in docker-compose/uvicorn
+    backend_port: int = 20001
+
     agent_max_iterations: int = 3
     agent_vision_confidence_threshold: float = 0.6
 
