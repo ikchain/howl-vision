@@ -5,6 +5,19 @@ export function getServerUrl(): string | null {
   return localStorage.getItem(STORAGE_KEY);
 }
 
+/**
+ * Returns the effective API base URL.
+ * Explicit stored URL (from QR Connect) takes precedence.
+ * Falls back to current origin so that deployed instances
+ * (app.howlvision.com) route through their own nginx proxy.
+ */
+export function getEffectiveServerUrl(): string | null {
+  const stored = getServerUrl();
+  if (stored) return stored;
+  if (typeof window !== "undefined") return window.location.origin;
+  return null;
+}
+
 export function setServerUrl(url: string): void {
   localStorage.setItem(STORAGE_KEY, url);
 }

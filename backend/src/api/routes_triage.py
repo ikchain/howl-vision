@@ -1,8 +1,8 @@
 """POST /api/v1/triage — text-based symptom triage via Gemma 4."""
 import uuid
 import logging
-from asyncio import get_event_loop
 
+import httpx
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -45,11 +45,9 @@ async def triage(request: TriageRequest):
     )
 
     try:
-        import ollama
-        loop = get_event_loop()
-        response = await loop.run_in_executor(None, lambda: ollama.chat(
-            model=settings.ollama_model,
-            messages=[
+        payload = {
+            "model": settings.ollama_model,
+            "messages": [
                 {
                     "role": "system",
                     "content": (
@@ -62,10 +60,25 @@ async def triage(request: TriageRequest):
                 },
                 {"role": "user", "content": prompt},
             ],
-        ))
-        recommendation = response["message"]["content"]
+            "stream": False,
+        }
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                f"{settings.ollama_base_url.rstrip('/')}/api/chat",
+                json=payload,
+            )
+            resp.raise_for_status()
+            recommendation = resp.json()["message"]["content"]
+    except httpx.HTTPStatusError as e:
+        logger.error("Triage Ollama HTTP %s: %s", e.response.status_code, e.response.text[:500])
+        recommendation = (
+            "Unable to generate AI triage at this time. "
+            "Based on the symptoms described, please consult a veterinarian. "
+            "If symptoms are severe (difficulty breathing, seizures, bleeding), "
+            "seek emergency care immediately."
+        )
     except Exception as e:
-        logger.error(f"Triage generation failed: {e}")
+        logger.error("Triage generation failed: %s", e)
         recommendation = (
             "Unable to generate AI triage at this time. "
             "Based on the symptoms described, please consult a veterinarian. "

@@ -1,4 +1,4 @@
-import { getServerUrl } from "./connection";
+import { getEffectiveServerUrl } from "./connection";
 import { getTemplateNarrative } from "../data/templates";
 import type { AnalyzeResponse } from "../types";
 
@@ -61,7 +61,7 @@ export async function analyzeImage(
   module: "dermatology" | "parasites",
   onStatus?: (status: "loading_model" | "analyzing") => void,
 ): Promise<AnalyzeResponse> {
-  const serverUrl = getServerUrl();
+  const serverUrl = getEffectiveServerUrl();
 
   // Always try the server first when a URL is configured.
   // Only fall through to offline on network or server errors.
