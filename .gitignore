@@ -1,5 +1,6 @@
 # Secrets & local config
 .env
+.env.*
 .mcp.json
 .claude/
 .superpowers/

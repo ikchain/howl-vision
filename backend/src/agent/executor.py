@@ -177,8 +177,8 @@ async def generate_narrative(
 ) -> str:
     """Generate a clinical narrative from classification results using Gemma 4.
 
-    Runs the ollama sync call in the default executor so it doesn't block the
-    event loop — the ollama package does not expose an async interface.
+    Uses httpx to call the Ollama /api/chat endpoint so the URL from
+    settings.ollama_base_url is respected (required for the Hetzner tunnel).
     """
     diff_text = (
         ", ".join(d.get("label", "") for d in differentials[:3])
@@ -194,30 +194,34 @@ async def generate_narrative(
         f"State that this classification requires veterinary confirmation."
     )
 
-    def _call_ollama() -> str:
-        import ollama
-
-        response = ollama.chat(
-            model=settings.ollama_model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are Howl Vision, a veterinary AI copilot. "
-                        "Provide structured clinical assessments based on automated "
-                        "classification results. Always state that findings require "
-                        "veterinary confirmation. Never use the word 'diagnosis' — "
-                        "use 'classification result' or 'assessment'."
-                    ),
-                },
-                {"role": "user", "content": prompt},
-            ],
-        )
-        return response["message"]["content"]
+    payload = {
+        "model": settings.ollama_model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are Howl Vision, a veterinary AI copilot. "
+                    "Provide structured clinical assessments based on automated "
+                    "classification results. Always state that findings require "
+                    "veterinary confirmation. Never use the word 'diagnosis' — "
+                    "use 'classification result' or 'assessment'."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        "stream": False,
+    }
 
     try:
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, _call_ollama)
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                f"{settings.ollama_base_url.rstrip('/')}/api/chat",
+                json=payload,
+            )
+            resp.raise_for_status()
+            return resp.json()["message"]["content"]
+    except httpx.HTTPStatusError as e:
+        logger.error("Narrative Ollama HTTP %s: %s", e.response.status_code, e.response.text[:500])
     except Exception as e:
         logger.error("Narrative generation failed: %s", e)
         return (
