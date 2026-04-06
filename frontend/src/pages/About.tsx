@@ -117,20 +117,21 @@ export function About() {
       </div>
 
       {/* Pipeline */}
-      <div className="text-center">
-        <h2 className="text-xs font-semibold text-content-muted uppercase tracking-wider mb-2">
+      <div>
+        <h2 className="text-xs font-semibold text-content-muted uppercase tracking-wider mb-3 text-center">
           How it works
         </h2>
-        <div className="flex items-center justify-center flex-wrap gap-1.5">
+        <div className="flex items-stretch gap-0 rounded-xl border border-ocean-border overflow-hidden">
           {PIPELINE.map((step, i) => (
-            <span key={step} className="contents">
-              <span className="bg-ocean-surface px-2.5 py-1 rounded-md text-[10px] text-content-secondary border border-ocean-border">
-                {step}
-              </span>
+            <div
+              key={step}
+              className="flex-1 flex items-center justify-center text-center px-1 py-2.5 bg-ocean-surface relative"
+            >
+              <span className="text-[10px] font-medium text-content-secondary leading-tight">{step}</span>
               {i < PIPELINE.length - 1 && (
-                <ChevronRight size={12} className="text-teal-text flex-shrink-0" />
+                <ChevronRight size={14} className="text-teal-text absolute -right-[7px] z-10" />
               )}
-            </span>
+            </div>
           ))}
         </div>
       </div>
