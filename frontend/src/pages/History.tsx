@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
+import { X } from "lucide-react";
 import { getAnalyses } from "../lib/db";
 import { UrgencyBadge } from "../components/shared/UrgencyBadge";
+import { ResultCard } from "../components/shared/ResultCard";
 import type { AnalysisRecord } from "../types";
 
 export default function History() {
   const [records, setRecords] = useState<AnalysisRecord[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<AnalysisRecord | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -46,9 +49,10 @@ export default function History() {
       ) : (
         <div className="space-y-2">
           {records.map((r) => (
-            <div
+            <button
               key={r.id}
-              className="flex items-center gap-3 bg-ocean-surface rounded-lg p-3 border border-ocean-border"
+              onClick={() => r.fullResult && setSelected(r)}
+              className="w-full flex items-center gap-3 bg-ocean-surface rounded-lg p-3 border border-ocean-border text-left hover:border-teal/40 transition-colors"
             >
               <img
                 src={r.thumbnailDataUrl}
@@ -69,8 +73,35 @@ export default function History() {
                 {" "}
                 {new Date(r.timestamp).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
               </span>
-            </div>
+            </button>
           ))}
+        </div>
+      )}
+
+      {/* Detail modal */}
+      {selected?.fullResult && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="bg-ocean-deep w-full sm:max-w-lg max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-ocean-deep/95 backdrop-blur-sm flex items-center justify-between px-4 py-3 border-b border-ocean-border">
+              <span className="text-sm font-semibold text-content-primary">
+                {new Date(selected.timestamp).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+                {" "}
+                {new Date(selected.timestamp).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+              </span>
+              <button onClick={() => setSelected(null)} className="p-1 text-content-muted hover:text-content-primary">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <ResultCard result={selected.fullResult} previewUrl={selected.thumbnailDataUrl} />
+            </div>
+          </div>
         </div>
       )}
     </div>
