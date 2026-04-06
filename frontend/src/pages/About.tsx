@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { MessageSquare, ScanLine, Database, ChevronRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { MessageSquare, ScanLine, Database, ChevronRight, UserCircle } from "lucide-react";
+import { getProfile, clearProfile } from "../lib/profile";
 import type { BeforeInstallPromptEvent } from "../types";
 
 const FEATURES = [
@@ -31,6 +32,8 @@ const METRICS = [
 const PIPELINE = ["Clinical Image", "Vision Models", "Gemma 4 E4B", "Clinical Report"];
 
 export function About() {
+  const navigate = useNavigate();
+  const profile = getProfile();
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
 
@@ -63,7 +66,7 @@ export function About() {
             Howl Vision
           </h1>
           <p className="text-base md:text-lg text-content-secondary mt-2 md:mt-3">
-            AI-powered veterinary copilot for clinics without internet
+            Accessible veterinary diagnosis where there is no specialist
           </p>
           <Link
             to="/chat"
@@ -145,14 +148,30 @@ export function About() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="flex-shrink-0 py-4 text-center border-t border-ocean-border space-y-1">
-        <p className="text-content-muted text-xs">
-          Powered by Gemma 4 &middot; Fine-tuned with Unsloth &middot; Runs on Ollama &middot; Exported with llama.cpp
-        </p>
-        <p className="text-content-muted text-xs opacity-60">
-          Gemma 4 Good Hackathon 2026 &middot; Open Source
-        </p>
+      {/* Profile + Footer */}
+      <footer className="flex-shrink-0 border-t border-ocean-border">
+        {profile && (
+          <div className="flex items-center justify-between px-4 py-3 border-b border-ocean-border">
+            <div className="flex items-center gap-2">
+              <UserCircle size={16} className="text-content-muted" />
+              <span className="text-xs text-content-secondary">{profile.label}</span>
+            </div>
+            <button
+              onClick={() => { clearProfile(); navigate("/onboarding", { replace: true }); }}
+              className="text-xs text-teal-text hover:underline"
+            >
+              Change profile
+            </button>
+          </div>
+        )}
+        <div className="py-4 text-center space-y-1">
+          <p className="text-content-muted text-xs">
+            Powered by Gemma 4 &middot; Fine-tuned with Unsloth &middot; Runs on Ollama &middot; Exported with llama.cpp
+          </p>
+          <p className="text-content-muted text-xs opacity-60">
+            Gemma 4 Good Hackathon 2026 &middot; Open Source
+          </p>
+        </div>
       </footer>
     </div>
   );

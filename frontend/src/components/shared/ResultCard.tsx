@@ -21,8 +21,16 @@ export function ResultCard({ result, previewUrl }: Props) {
 
   return (
     <div className={`rounded-xl border ${borderClass} bg-ocean-surface overflow-hidden`}>
+      {/* Source indicator */}
+      <div className={`flex items-center gap-1.5 px-4 pt-3 ${isOffline ? "text-content-muted" : "text-teal-text"}`}>
+        <div className={`w-1.5 h-1.5 rounded-full ${isOffline ? "bg-gray-400" : "bg-teal"}`} />
+        <span className="text-[10px] font-medium uppercase tracking-wider">
+          {isOffline ? "Local AI" : "Clinic Hub"}
+        </span>
+      </div>
+
       {/* Header: image + classification */}
-      <div className="flex gap-4 p-4">
+      <div className="flex gap-4 p-4 pt-2">
         <img src={previewUrl} alt="Analyzed" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">

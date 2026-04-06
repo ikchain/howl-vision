@@ -5,6 +5,8 @@ import socket
 from fastapi import APIRouter
 from fastapi.responses import Response
 
+from src.config import settings
+
 router = APIRouter(prefix="/api/v1")
 
 
@@ -29,7 +31,7 @@ def get_local_ip() -> str:
 async def qr_code():
     import qrcode
     local_ip = get_local_ip()
-    url = f"http://{local_ip}:20001"
+    url = f"http://{local_ip}:{settings.backend_port}"
     img = qrcode.make(url)
     buf = io.BytesIO()
     img.save(buf, format="PNG")

@@ -1,7 +1,8 @@
 # Secrets & local config
 .env
 .mcp.json
-.claude/settings.local.json
+.claude/
+.superpowers/
 
 # Model weights (download on deploy)
 data/models/**/*.pt
@@ -22,7 +23,10 @@ data/rag/*.csv
 data/rag/*.json
 
 # Training outputs (generated, regenerable)
-training/output/
+training/output*/
+training/checkpoints*/
+training/*.log
+unsloth_compiled_cache/
 
 # Python
 __pycache__/
@@ -34,6 +38,7 @@ venv/
 # Node
 node_modules/
 dist/
+*.tsbuildinfo
 
 # IDE
 .vscode/

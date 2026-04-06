@@ -59,6 +59,7 @@ export async function analyzeImage(
   image: File,
   species: "canine" | "feline",
   module: "dermatology" | "parasites",
+  onStatus?: (status: "loading_model" | "analyzing") => void,
 ): Promise<AnalyzeResponse> {
   const serverUrl = getServerUrl();
 
@@ -97,6 +98,7 @@ export async function analyzeImage(
 
   const onnx = await getOnnx();
   if (!onnx.isModelLoaded()) {
+    onStatus?.("loading_model");
     try {
       await onnx.loadModel();
     } catch {
@@ -104,6 +106,7 @@ export async function analyzeImage(
         "Offline model could not be loaded. Connect to a Clinic Hub for image analysis.",
       );
     }
+    onStatus?.("analyzing");
   }
 
   const classification = await onnx.classifyImage(image);

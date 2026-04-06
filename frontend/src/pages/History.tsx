@@ -6,9 +6,14 @@ import type { AnalysisRecord } from "../types";
 export default function History() {
   const [records, setRecords] = useState<AnalysisRecord[]>([]);
   const [filter, setFilter] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAnalyses(filter === "all" ? undefined : filter).then(setRecords);
+    setLoading(true);
+    getAnalyses(filter === "all" ? undefined : filter)
+      .then(setRecords)
+      .catch(() => setRecords([]))
+      .finally(() => setLoading(false));
   }, [filter]);
 
   return (
@@ -30,7 +35,11 @@ export default function History() {
         ))}
       </div>
 
-      {records.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="w-2 h-2 rounded-full bg-teal animate-pulse" />
+        </div>
+      ) : records.length === 0 ? (
         <p className="text-sm text-content-muted text-center py-12">
           No analyses yet. Go to Capture to start.
         </p>
@@ -56,7 +65,9 @@ export default function History() {
                 <p className="text-xs text-content-muted truncate">{r.narrativeSummary}</p>
               </div>
               <span className="text-[10px] text-content-muted whitespace-nowrap">
-                {new Date(r.timestamp).toLocaleDateString()}
+                {new Date(r.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                {" "}
+                {new Date(r.timestamp).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
               </span>
             </div>
           ))}

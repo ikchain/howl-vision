@@ -71,7 +71,7 @@ const URGENCY_MAP: Record<string, string> = {
   "Skin Irritations": "monitor",
 };
 
-function offlineTriage(symptoms: string): TriageResult {
+function offlineTriage(species: string, symptoms: string): TriageResult {
   const words = symptoms.toLowerCase().split(/\s+/);
 
   const scores: Array<{ name: string; matchScore: number; urgency: string }> = [];
@@ -99,9 +99,10 @@ function offlineTriage(symptoms: string): TriageResult {
   scores.sort((a, b) => b.matchScore - a.matchScore);
 
   const top = scores[0];
+  const speciesLabel = species === "feline" ? "cat" : "dog";
   const recommendation = top
-    ? `Based on symptom keywords, this may be related to ${top.name.toLowerCase()}. Please consult a veterinarian for proper diagnosis.`
-    : "Could not match symptoms to known conditions. Please consult a veterinarian.";
+    ? `Based on symptom keywords for your ${speciesLabel}, this may be related to ${top.name.toLowerCase()}. Please consult a veterinarian for proper diagnosis.`
+    : `Could not match symptoms to known conditions for ${speciesLabel}s. Please consult a veterinarian.`;
 
   return {
     conditions: scores.slice(0, 3),
@@ -115,7 +116,7 @@ function offlineTriage(symptoms: string): TriageResult {
 export async function triage(species: string, symptoms: string): Promise<TriageResult> {
   const serverResult = await serverTriage(species, symptoms);
   if (serverResult) return serverResult;
-  return offlineTriage(symptoms);
+  return offlineTriage(species, symptoms);
 }
 
 const SPECIES_TO_PHARMA: Record<string, string> = { canine: "dog", feline: "cat" };
