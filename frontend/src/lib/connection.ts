@@ -48,7 +48,7 @@ export function watchServerConnection(
   let timer: ReturnType<typeof setInterval>;
 
   async function poll() {
-    const url = getServerUrl();
+    const url = getEffectiveServerUrl();
     if (!url) {
       if (alive) { alive = false; onChange(false); }
       return;
