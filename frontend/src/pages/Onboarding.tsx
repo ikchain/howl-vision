@@ -10,11 +10,16 @@ const ICONS: Record<UserProfileId, typeof Dog> = {
 
 const PROFILE_ORDER: UserProfileId[] = ["pet_owner", "lab_tech", "field_worker"];
 
-export default function Onboarding() {
+interface Props {
+  onComplete?: () => void;
+}
+
+export default function Onboarding({ onComplete }: Props = {}) {
   const navigate = useNavigate();
 
   function handleSelect(id: UserProfileId) {
     setProfile(id);
+    onComplete?.();
     navigate("/capture", { replace: true });
   }
 

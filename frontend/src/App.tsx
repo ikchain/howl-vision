@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { BottomTabBar } from "./components/layout/BottomTabBar";
 import { ConnectionBadge } from "./components/layout/ConnectionBadge";
@@ -35,8 +36,13 @@ function AppLayout() {
 }
 
 function OnboardingGate() {
+  // Counter forces re-render after profile selection, since getProfile()
+  // reads localStorage directly and route may not change (/capture → /capture).
+  const [, setTick] = useState(0);
+  const onProfileSet = useCallback(() => setTick((t) => t + 1), []);
+
   const profile = getProfile();
-  if (!profile) return <Onboarding />;
+  if (!profile) return <Onboarding onComplete={onProfileSet} />;
   return <AppLayout />;
 }
 
