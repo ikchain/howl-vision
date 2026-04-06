@@ -1,109 +1,106 @@
-# Howl Vision — Veterinary AI Copilot
+# Howl Vision
 
-AI copilot for veterinary clinics in rural and resource-limited settings. Runs 100% locally using **Gemma 4 E4B** as a multimodal agent that orchestrates specialized vision models, a clinical knowledge base, and pharmacological tools — no internet, no cloud, no data leaving the clinic.
+**Accessible veterinary diagnosis where there is no specialist.**
 
-Built for the [Gemma 4 Good Hackathon](https://www.kaggle.com/competitions/gemma-4-good-hackathon) (Kaggle / Google DeepMind).
+A pet owner at 3am with a worried dog. A lab technician in a rural clinic with a microscope and no dermatologist. A shelter volunteer screening 40 dogs after a rescue. They all need the same thing: a second opinion from someone who has seen this before.
 
-## How it works
+Howl Vision is a veterinary AI copilot that puts dermatology classification, blood parasite detection, clinical knowledge search, and drug interaction checks into a single PWA — usable on any phone, with or without internet.
 
-A veterinarian describes symptoms and uploads a clinical image. Gemma 4 E4B (via Ollama) autonomously decides which tools to invoke:
+Built for the [Gemma 4 Good Hackathon](https://www.kaggle.com/competitions/gemma-4-good-hackathon) (Kaggle / Google DeepMind, 2026).
 
-| Tool | What it does | Backend |
-|------|-------------|---------|
-| `classify_dermatology` | Classify skin lesions into 6 categories | EfficientNetV2-S (93.49% acc) |
-| `detect_parasites` | Identify blood parasites in microscopy | EfficientNetV2-S (99.83% acc) |
-| `segment_ultrasound` | Segment structures in ultrasound images | UNet + EfficientNet-B0 (CPU) |
-| `search_clinical_cases` | Find similar cases from ~22K records | Qdrant + SapBERT 768d |
-| `calculate_dosage` | Drug dosage by species and weight | PostgreSQL lookup |
-| `check_drug_interactions` | Known interactions between drugs | PostgreSQL lookup |
+**Live demo:** [app.howlvision.com](https://app.howlvision.com)
 
-The response streams back via SSE with a structured clinical format: Findings, Differentials, Recommendation, Pharmacology.
+## What it does
+
+The app works in three modes depending on connectivity:
+
+| Mode | What's available | Requires |
+|------|-----------------|----------|
+| **Offline** | Skin lesion classification via ONNX (sub-second, 20MB model) + symptom triage | Nothing — works on the phone alone |
+| **Clinic Hub** | Full analysis: Gemma 4 narratives + RAG + parasitology + pharma | Local server via QR connect |
+| **Cloud** | Same as Clinic Hub | Internet connection to app.howlvision.com |
+
+When connected, Gemma 4 E4B acts as an agent that autonomously selects which tools to call:
+
+| Tool | What it does | Model |
+|------|-------------|-------|
+| `classify_dermatology` | 6 canine + 5 feline skin conditions | EfficientNetV2-S (94.0% / 90.1%) |
+| `detect_parasites` | Blood parasites in microscopy images | EfficientNetV2-S (99.87%) |
+| `segment_ultrasound` | Ultrasound structure segmentation | UNet + EfficientNet-B0 |
+| `search_clinical_cases` | Semantic search across 22K clinical records | Qdrant + SapBERT 768d |
+| `calculate_dosage` | Drug dosage by species and weight | PostgreSQL (38 drugs, Merck source) |
+| `check_drug_interactions` | Known interactions between drugs | PostgreSQL (14 interactions) |
 
 ## Architecture
 
 ```
-Frontend (React 18)  →  Backend (FastAPI)  →  Gemma 4 E4B (Ollama)
-                              ↕                      ↕ function calling
-                         PostgreSQL            Vision Service (PyTorch)
-                         Redis                 Qdrant (RAG)
+Phone (PWA)
+  ├── Offline: ONNX Runtime Web (WASM) + IndexedDB history
+  └── Online: POST /api/v1/analyze
+                    │
+        ┌───────────┴───────────┐
+        │    Backend (FastAPI)   │
+        │    Gemma 4 E4B Agent   │
+        │    ↕ function calling  │
+        ├────────────────────────┤
+        │ Vision    │ RAG       │
+        │ Service   │ Qdrant    │
+        │ (PyTorch) │ 22K vecs  │
+        ├────────────────────────┤
+        │ PostgreSQL │ Redis    │
+        └────────────────────────┘
 ```
 
-7 services orchestrated via Docker Compose.
+## Vision models
+
+All models trained on public datasets (Apache 2.0) and published on HuggingFace:
+
+| Model | Classes | Accuracy | F1 | Published |
+|-------|---------|----------|----|-----------|
+| [vet-dermatology-canine](https://huggingface.co/ikchain/vet-dermatology-canine) | 6 (demodicosis, dermatitis, fungal, healthy, hypersensitivity, ringworm) | 94.0% | 0.923 | ikchain/vet-dermatology-canine |
+| [vet-dermatology-feline](https://huggingface.co/ikchain/vet-dermatology-feline) | 5 (fungal, healthy, ringworm, scabies, sporotrichosis) | 90.1% | 0.902 | ikchain/vet-dermatology-feline |
+| [vet-parasites-blood](https://huggingface.co/ikchain/vet-parasites-blood) | 12 (Leishmania, Plasmodium, Babesia, Toxoplasma, etc.) | 99.87% | 0.997 | ikchain/vet-parasites-blood |
+
+Canine dermatology exported to ONNX INT8 (19.7MB) for offline browser inference at 675ms on mid-range Android.
 
 ## Quick start
 
 ```bash
 # Prerequisites: Docker, NVIDIA GPU (16GB VRAM), Ollama with gemma4:e4b
+git clone https://github.com/ikchain/howl-vision.git
+cd howl-vision
 cp .env.example .env
 docker-compose up -d
 
-# Index the RAG knowledge base (one-time, ~30s on GPU)
-docker exec gemma-4-vision-service-1 python -m src.rag.indexer
-
-# Run pharma migrations
-docker exec -i gemma-4-postgres-1 psql -U howl -d howlvision < backend/src/migrations/001_pharma.sql
-
-# Frontend dev server
-cd frontend && npm install && npm run dev
+# Open the PWA
+open http://localhost:20000
 ```
 
-Open http://localhost:20000
-
-## Services
-
-| Service | Port | Description |
-|---------|------|-------------|
-| frontend | 20000 | React 18 + Vite + Tailwind |
-| backend | 20001 | FastAPI gateway + agent orchestrator |
-| vision-service | 20002 | Vision models + SapBERT embedder |
-| qdrant | 20003 | Vector DB for RAG (~22K cases) |
-| redis | 20004 | Cache + sessions |
-| postgres | 20005 | Pharma data + conversations |
-| ollama | 11434 | Gemma 4 E4B (shared, external) |
+Services start with health checks. Backend runs PostgreSQL migrations and Qdrant collection setup automatically on startup.
 
 ## Tech stack
 
-- **LLM:** Gemma 4 E4B-it via Ollama (8B params, multimodal, function calling, 128K context)
-- **Backend:** FastAPI + Python 3.12
-- **Vision:** PyTorch + timm (EfficientNetV2-S) + segmentation-models-pytorch
-- **RAG:** Qdrant + SapBERT 768d embeddings
-- **Frontend:** React 18 + Vite + Tailwind CSS + TypeScript
-- **Infra:** Docker Compose
+- **LLM:** Gemma 4 E4B-it via Ollama — 8B params, multimodal, native function calling, 128K context
+- **Vision:** PyTorch + timm (EfficientNetV2-S) + ONNX Runtime Web for offline
+- **RAG:** Qdrant + SapBERT 768d embeddings, 22K veterinary records
+- **Backend:** FastAPI + Python 3.12, agent loop with SSE streaming
+- **Frontend:** React 18 + Vite + Tailwind CSS + TypeScript, PWA with service worker
+- **Infra:** Docker Compose (7 services), nginx reverse proxy
 
-## Project structure
+## Benchmarks
 
-```
-backend/src/
-  agent/       # Orchestrator, tools, executor
-  api/         # FastAPI routes (chat SSE, cases search)
-  rag/         # Qdrant schema, semantic search
-  clinical/    # Pharma dosage + interactions
+| Benchmark | Result |
+|-----------|--------|
+| llama.cpp E2B Q4_K_M | 240 tok/s generation, 15K tok/s prompt processing, 1.9GB VRAM |
+| ONNX INT8 mobile | 675ms inference, 19.7MB model size |
+| Vision ECE (calibration) | 0.027 dermatology, 0.002 parasites |
 
-vision-service/src/
-  models/      # Dermatology, parasites, segmentation
-  rag/         # SapBERT embedder, indexer, formatters
-  api/         # Vision endpoints + /embed
-
-frontend/src/
-  pages/       # VetChat, ImageDx, CaseViewer
-  components/  # ChatMessage, ToolStatus, ImageUpload, etc.
-  lib/         # SSE parser, API client
-```
-
-## Hackathon tracks
-
-| Track | Prize | Status |
-|-------|-------|--------|
-| Main Track | $50,000 | Primary target |
-| Health & Sciences | $10,000 | Writeup track |
-| Ollama | $10,000 | Gemma 4 E4B via Ollama |
-| Unsloth | $10,000 | Fine-tune pending |
-| llama.cpp | $10,000 | GGUF benchmark pending |
+Full benchmark data in [`benchmarks/`](benchmarks/).
 
 ## License
 
-CC-BY 4.0 (if awarded). Code is public.
+Apache 2.0
 
-## Team
+## Author
 
-**Quantum AI Lab** — Dario Avalos
+**Darío Ávalos** — [Quantum AI Lab](https://quantumhowl.com)
