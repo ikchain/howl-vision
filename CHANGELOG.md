@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added (2026-04-06)
+- **Hetzner Deploy :** app.howlvision.com live. SSH tunnel (40220/40221) from home PC GPU to Hetzner Docker. Nginx SSL, iptables, docker-compose.prod.yml. $0 cost (no ORI needed).
+- **GitHub Public Repo :** github.com/ikchain/howl-vision with full commit history. README rewritten with narrative + HF model links.
+- **History Detail View:** Tap analysis record to open full ResultCard in full-screen scrollable overlay.
+- **Backend Startup Init:** Lifespan handler runs PostgreSQL migrations + Qdrant collection setup automatically.
+
+### Fixed (2026-04-06)
+- **E2E Polish (10 fixes):** Source badge on ResultCard, ONNX loading feedback, file input retry, object URL leak (W3), profile change in About, history timestamps+loading, About subtitle One Health, QR port configurable (W7), offline triage species (W5).
+- **Ollama routing:** routes_triage.py + executor.py replaced bare `ollama.chat()` with httpx via settings.ollama_base_url (required for tunnel deploy).
+- **Same-origin API:** getEffectiveServerUrl() falls back to window.location.origin for deployed PWA.
+- **ConnectionBadge:** Uses same-origin health check. Nginx proxies /health to backend.
+- **Onboarding gate:** Profile selection re-renders via tick counter (navigate /capture→/capture was a no-op).
+- **About page:** /chat link fixed to /capture, min-h-screen removed, mobile-first layout, pipeline row.
+- **Gitignore:** Training artifacts (~198MB), .claude/, .superpowers/, .env.*, *.tsbuildinfo protected.
+
 ### Added (2026-04-05)
 - **One Health Pivot :** PWA mobile-first with 3 modes (offline text, offline ONNX, server). BottomTabBar, QR Connect (jsQR), Onboarding (3 profiles), ConnectionBadge, Capture with species/module selector, IndexedDB history, ONNX INT8 browser inference (675ms), offline triage (500 symptoms + 38 pharma) — `ab6c264..c5aad57`
 - **Feline Dermatology Model :** EfficientNetV2-S retrained 58%→90.1% (F1=0.902, n=152). Training script with augmentation, Wilson CIs, early stopping — `56c5978`
