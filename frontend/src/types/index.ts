@@ -150,14 +150,6 @@ export type HistoryRecord = ImageAnalysisRecord | TriageRecord;
  */
 export const TRIAGE_SUMMARY_MAX_LEN = 200;
 
-/**
- * @deprecated Use ImageAnalysisRecord directly, or HistoryRecord for the
- * union. Kept temporarily so existing imports do not break before Phase 3
- * (db.ts) and Phase 7 (History.tsx) update their consumers.
- *
- * TODO: remove after Phase 8 build verifies no remaining consumers.
- */
-export type AnalysisRecord = ImageAnalysisRecord;
 
 // -- PWA --
 
