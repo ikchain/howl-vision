@@ -1,17 +1,64 @@
 import { openDB, type IDBPDatabase } from "idb";
-import type { AnalysisRecord, AnalyzeResponse } from "../types";
+import type {
+  AnalyzeResponse,
+  HistoryRecord,
+  ImageAnalysisRecord,
+  TriageRecord,
+} from "../types";
+import { TRIAGE_SUMMARY_MAX_LEN } from "../types";
+import type { TriageResult } from "./triage";
 
 const DB_NAME = "howl-vision";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
+
+// "analyses" is the historical name from v1 when this store only held image
+// analyses. As of  it holds a discriminated union (HistoryRecord) of
+// ImageAnalysisRecord and TriageRecord. The store name is preserved for
+// backwards compatibility with v1 users — renaming would force a destructive
+// migration. Do not let the name mislead you: this is the history store, not
+// the image-analyses store.
 const STORE_NAME = "analyses";
 
 async function getDb(): Promise<IDBPDatabase> {
   return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
+    /**
+     * Migration v1 → v2 :
+     *
+     * v1 records have no `kind` field — they are all image analyses by
+     * definition. v2 records carry `kind: "image" | "triage"` to support
+     * the discriminated union HistoryRecord.
+     *
+     * IMPORTANT: this callback receives the active versionchange transaction
+     * as its 4th parameter. We MUST use it directly via
+     * `transaction.objectStore(STORE_NAME)` — calling `db.transaction()`
+     * inside the upgrade throws InvalidStateError because a versionchange
+     * transaction is already active.
+     *
+     * The migration uses `oldVersion` explicitly (not field inference): if a
+     * record is coming from v1, we know with certainty it is an image
+     * analysis. We never guess based on which fields are present.
+     */
+    async upgrade(db, oldVersion, _newVersion, transaction) {
+      if (oldVersion < 1) {
+        // First-time install: create the store and indices.
         const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
         store.createIndex("timestamp", "timestamp");
         store.createIndex("species", "species");
+      }
+
+      if (oldVersion < 2) {
+        // v1 → v2: backfill kind:"image" on every existing record.
+        // Use the transaction parameter, never db.transaction() inside upgrade.
+        const store = transaction.objectStore(STORE_NAME);
+        let cursor = await store.openCursor();
+        while (cursor) {
+          const record = cursor.value as Record<string, unknown>;
+          if (!("kind" in record)) {
+            record.kind = "image";
+            await cursor.update(record);
+          }
+          cursor = await cursor.continue();
+        }
       }
     },
   });
@@ -39,7 +86,8 @@ export async function saveAnalysis(
 ): Promise<void> {
   const db = await getDb();
   const thumbnail = await createThumbnail(file);
-  const record: AnalysisRecord = {
+  const record: ImageAnalysisRecord = {
+    kind: "image",
     id: result.analysis_id,
     timestamp: Date.now(),
     species,
@@ -54,15 +102,48 @@ export async function saveAnalysis(
   await db.put(STORE_NAME, record);
 }
 
-export async function getAnalyses(species?: string): Promise<AnalysisRecord[]> {
+/**
+ * Persist a triage result. Separate from saveAnalysis() because triage
+ * records have no File (no thumbnail) and a different schema. The two
+ * persist functions converge on the same store but build different shapes.
+ */
+export async function saveTriage(
+  species: "canine" | "feline",
+  symptomsText: string,
+  result: TriageResult,
+): Promise<void> {
   const db = await getDb();
-  const all = await db.getAllFromIndex(STORE_NAME, "timestamp");
+  const top = result.conditions[0];
+  // urgency hierarchy: emergency override beats per-condition urgency.
+  // If neither set anything, default to "unknown" (matcher returned no hits).
+  const urgency: TriageRecord["urgency"] = result.emergency
+    ? "emergency"
+    : top
+      ? top.urgency
+      : "unknown";
+  const record: TriageRecord = {
+    kind: "triage",
+    id: crypto.randomUUID(),
+    timestamp: Date.now(),
+    species,
+    symptomsText,
+    topCondition: top ? top.name : null,
+    urgency,
+    recommendationSummary: result.recommendation.slice(0, TRIAGE_SUMMARY_MAX_LEN),
+    fullResult: result,
+  };
+  await db.put(STORE_NAME, record);
+}
+
+export async function getAnalyses(species?: string): Promise<HistoryRecord[]> {
+  const db = await getDb();
+  const all = (await db.getAllFromIndex(STORE_NAME, "timestamp")) as HistoryRecord[];
   const sorted = all.reverse();
   if (species) return sorted.filter((r) => r.species === species);
   return sorted;
 }
 
-export async function getAnalysis(id: string): Promise<AnalysisRecord | undefined> {
+export async function getAnalysis(id: string): Promise<HistoryRecord | undefined> {
   const db = await getDb();
-  return db.get(STORE_NAME, id);
+  return (await db.get(STORE_NAME, id)) as HistoryRecord | undefined;
 }

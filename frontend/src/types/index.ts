@@ -93,8 +93,21 @@ export interface AnalyzeResponse {
 }
 
 // -- History --
+//
+// Schemas defined in docs/superpowers/specs/2026-04-07-text-triage-ui-design.md §6.5
+//
+// HistoryRecord is a discriminated union over `kind`. Image analyses
+// (existing behavior) and triage records (new in ) live in the same
+// IndexedDB store but render and persist differently.
+//
+// Why discriminated union and not optional fields: optional fields defer
+// validity to runtime and force consumers to repeatedly check for presence.
+// The union gives compile-time exhaustiveness checking via switch (record.kind).
 
-export interface AnalysisRecord {
+import type { TriageResult } from "../lib/triage";
+
+export interface ImageAnalysisRecord {
+  kind: "image";
   id: string;
   timestamp: number;
   species: "canine" | "feline";
@@ -106,6 +119,37 @@ export interface AnalysisRecord {
   narrativeSummary: string;
   fullResult?: AnalyzeResponse;
 }
+
+export interface TriageRecord {
+  kind: "triage";
+  id: string;
+  timestamp: number;
+  species: "canine" | "feline";
+  /** What the user typed in the symptoms textarea. */
+  symptomsText: string;
+  /** First condition's name. null if emergency override fired (conditions empty). */
+  topCondition: string | null;
+  urgency: "emergency" | "soon" | "monitor" | "healthy" | "unknown";
+  /** First TRIAGE_SUMMARY_MAX_LEN chars of recommendation. */
+  recommendationSummary: string;
+  /**
+   * Full result, REQUIRED. Used by History detail view to re-render the
+   * TriageResultCard with the original data. Unlike ImageAnalysisRecord
+   * (where fullResult is optional for backwards compat), triage records
+   * start fresh and require it.
+   */
+  fullResult: TriageResult;
+}
+
+export type HistoryRecord = ImageAnalysisRecord | TriageRecord;
+
+/**
+ * Maximum length of the truncated recommendation stored in TriageRecord.
+ * Shared between db.ts (truncation on save) and any consumer that wants
+ * to predict the truncation behavior. No magic number 200 in two places.
+ */
+export const TRIAGE_SUMMARY_MAX_LEN = 200;
+
 
 // -- PWA --
 
