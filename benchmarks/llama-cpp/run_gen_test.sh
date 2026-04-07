@@ -2,8 +2,8 @@
 set -uo pipefail
 
 LLAMA_CLI="/tmp/llama.cpp/build/bin/llama-cli"
-MODEL="/home/ikchain/Quantum/hackathons/gemma-4/data/models/gguf/gemma-4-E2B-it-Q4_K_M.gguf"
-BENCH_DIR="/home/ikchain/Quantum/hackathons/gemma-4/benchmarks/llama-cpp"
+MODEL="data/models/gguf/gemma-4-E2B-it-Q4_K_M.gguf"
+BENCH_DIR="benchmarks/llama-cpp"
 
 VET_PROMPT="You are a veterinary AI assistant for rural clinics. A farmer brings a 3-year-old dairy cow with lethargy, reduced milk production, pale mucous membranes, and mild fever of 39.8C. The cow has been on pasture with tick exposure history. What are the most likely differential diagnoses and recommended diagnostic steps?"
 

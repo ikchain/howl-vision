@@ -5,8 +5,8 @@ import os
 import re
 from datetime import datetime
 
-BENCH_DIR = "/home/ikchain/Quantum/hackathons/gemma-4/benchmarks/llama-cpp"
-GGUF_DIR = "/home/ikchain/Quantum/hackathons/gemma-4/data/models/gguf"
+BENCH_DIR = "benchmarks/llama-cpp"
+GGUF_DIR = "data/models/gguf"
 
 
 def load_bench(filename):

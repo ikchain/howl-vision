@@ -4,8 +4,8 @@ set -uo pipefail
 
 LLAMA_BENCH="/tmp/llama.cpp/build/bin/llama-bench"
 LLAMA_CLI="/tmp/llama.cpp/build/bin/llama-cli"
-MODEL="/home/ikchain/Quantum/hackathons/gemma-4/data/models/gguf/gemma-4-E2B-it-Q4_K_M.gguf"
-BENCH_DIR="/home/ikchain/Quantum/hackathons/gemma-4/benchmarks/llama-cpp"
+MODEL="data/models/gguf/gemma-4-E2B-it-Q4_K_M.gguf"
+BENCH_DIR="benchmarks/llama-cpp"
 
 # llama-bench does NOT have -c flag. Context is set by -p (prompt) + -n (gen).
 # We vary -p to simulate different prompt lengths.

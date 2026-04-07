@@ -5,6 +5,12 @@
 .claude/
 .superpowers/
 
+# Internal infra & local context (NOT for public repo)
+# These contain Hetzner IP, internal hosts, dev paths, and Jira refs.
+# Keep them on disk for local use, do NOT publish.
+CLAUDE.md
+docker-compose.prod.yml
+
 # Model weights (download on deploy)
 data/models/**/*.pt
 data/models/**/*.pth

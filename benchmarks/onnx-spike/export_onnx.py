@@ -45,10 +45,10 @@ from onnxsim import simplify
 # ---------------------------------------------------------------------------
 
 CHECKPOINT_PATH = pathlib.Path(
-    "/home/ikchain/Quantum/hackathons/gemma-4/data/models/vision/vet_dermatology.pt"
+    "data/models/vision/vet_dermatology.pt"
 )
 OUTPUT_DIR = pathlib.Path(
-    "/home/ikchain/Quantum/hackathons/gemma-4/benchmarks/onnx-spike"
+    "benchmarks/onnx-spike"
 )
 
 # Order matches DermatologyModel.CLASS_NAMES in vision-service
