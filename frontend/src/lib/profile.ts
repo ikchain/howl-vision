@@ -6,10 +6,10 @@ export interface ProfileConfig {
   description: string;
   cameraHint: string;
   /**
-   * Placeholder copy for the symptoms textarea in Capture.tsx .
-   * Adapts the prompt to the active profile so a pet owner sees a different
-   * prompt than a lab technician or a field worker, even though all three
-   * funnel into the same triage() function.
+   * Placeholder copy for the symptoms textarea in Capture.tsx. Adapts the
+   * prompt to the active profile so a pet owner sees a different prompt
+   * than a lab technician or a field worker, even though all three funnel
+   * into the same triage() function.
    */
   triageHint: string;
   modules: Array<"dermatology" | "parasites">;

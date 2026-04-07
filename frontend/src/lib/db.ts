@@ -12,7 +12,7 @@ const DB_NAME = "howl-vision";
 const DB_VERSION = 2;
 
 // "analyses" is the historical name from v1 when this store only held image
-// analyses. As of  it holds a discriminated union (HistoryRecord) of
+// analyses. Since v2 it holds a discriminated union (HistoryRecord) of
 // ImageAnalysisRecord and TriageRecord. The store name is preserved for
 // backwards compatibility with v1 users — renaming would force a destructive
 // migration. Do not let the name mislead you: this is the history store, not
@@ -22,7 +22,7 @@ const STORE_NAME = "analyses";
 async function getDb(): Promise<IDBPDatabase> {
   return openDB(DB_NAME, DB_VERSION, {
     /**
-     * Migration v1 → v2 :
+     * Migration v1 → v2:
      *
      * v1 records have no `kind` field — they are all image analyses by
      * definition. v2 records carry `kind: "image" | "triage"` to support

@@ -94,11 +94,9 @@ export interface AnalyzeResponse {
 
 // -- History --
 //
-// Schemas defined in docs/superpowers/specs/2026-04-07-text-triage-ui-design.md §6.5
-//
 // HistoryRecord is a discriminated union over `kind`. Image analyses
-// (existing behavior) and triage records (new in ) live in the same
-// IndexedDB store but render and persist differently.
+// and triage records live in the same IndexedDB store but render and
+// persist differently.
 //
 // Why discriminated union and not optional fields: optional fields defer
 // validity to runtime and force consumers to repeatedly check for presence.
