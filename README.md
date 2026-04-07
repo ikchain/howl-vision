@@ -43,6 +43,8 @@ Owners can describe what they see in writing — vomiting, scratching, limping, 
 
 The relevance score in the offline path is shown as three discrete tiers (low / medium / high) instead of a percentage, because a percentage would imply a calibration the matcher does not have.
 
+**Limitations of the safety override.** The keyword list is a starting point, not a comprehensive toxicology database. It uses substring matching, so it catches `chocolate` but not `cocoa`, `acetaminophen` but not the brand name `Tylenol`, `rodenticide` but not `mouse poison`, and it has no entry for `marijuana`, `cannabis`, `weed`, `theobromine`, `naproxen`, or several other known toxins. The list is published openly so anyone — users, veterinarians, contributors — can audit it and propose additions. Pull requests adding keywords or flagging gaps are welcome. The override exists to make the offline mode safer than substring matching against random clinical notes; it does not pretend to replace a poison-control hotline.
+
 ## Architecture
 
 ```
