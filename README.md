@@ -12,11 +12,13 @@ Built for the [Gemma 4 Good Hackathon](https://www.kaggle.com/competitions/gemma
 
 ## What it does
 
+There are two ways to ask Howl Vision about an animal: take a photo, or describe what you see in writing. Both flows live on the same screen, behind a single toggle.
+
 The app works in three modes depending on connectivity:
 
 | Mode | What's available | Requires |
 |------|-----------------|----------|
-| **Offline** | Skin lesion classification via ONNX (sub-second, 20MB model) + symptom triage | Nothing — works on the phone alone |
+| **Offline** | Skin lesion classification via ONNX (sub-second, 20MB model) + symptom triage by text with emergency keyword detection | Nothing — works on the phone alone |
 | **Clinic Hub** | Full analysis: Gemma 4 narratives + RAG + parasitology + pharma | Local server via QR connect |
 | **Cloud** | Same as Clinic Hub | Internet connection to app.howlvision.com |
 
@@ -24,12 +26,22 @@ When connected, Gemma 4 E4B acts as an agent that autonomously selects which too
 
 | Tool | What it does | Model |
 |------|-------------|-------|
-| `classify_dermatology` | 6 canine + 5 feline skin conditions | EfficientNetV2-S (94.0% / 90.1%) |
-| `detect_parasites` | Blood parasites in microscopy images | EfficientNetV2-S (99.87%) |
+| `classify_dermatology` | 6 canine + 4 feline skin conditions | EfficientNetV2-S (94.0% / 90.1%) |
+| `detect_parasites` | 8 blood parasite classes in microscopy images | EfficientNetV2-S (99.87%) |
 | `segment_ultrasound` | Ultrasound structure segmentation | UNet + EfficientNet-B0 |
 | `search_clinical_cases` | Semantic search across 22K clinical records | Qdrant + SapBERT 768d |
 | `calculate_dosage` | Drug dosage by species and weight | PostgreSQL (38 drugs, Merck source) |
 | `check_drug_interactions` | Known interactions between drugs | PostgreSQL (14 interactions) |
+
+### Symptom triage and the safety override
+
+Owners can describe what they see in writing — vomiting, scratching, limping, anything — without ever taking a photo. The text goes through three layers in order:
+
+1. **Emergency keyword override.** A client-side filter scans the input for ~70 substances and acute signs (chocolate, xylitol, permethrin, ibuprofen, antifreeze, seizure, collapse, blocked bladder, dystocia, anaphylaxis, and more). If any match, the app immediately surfaces a "contact a veterinarian now" banner and **never calls the matcher or the server**. This is a client-side last firewall, and it applies even if the server would otherwise return a non-emergency reading.
+2. **Server triage** when connected. Gemma 4 E4B receives the symptom text plus species and returns a structured triage: top conditions, urgency levels, and a plain-language recommendation in the user's language.
+3. **Offline keyword search** as a fallback. When there is no server reachable, the app falls through to a local keyword matcher against ~500 documented veterinary records, with stop-word filtering to remove common contaminants. The result is labeled honestly in the UI as **"Keyword Search — Offline"** and carries an inline disclaimer reading "Based on keyword matching. Not a diagnosis." It is not AI. It is substring matching, and the UI says so.
+
+The relevance score in the offline path is shown as three discrete tiers (low / medium / high) instead of a percentage, because a percentage would imply a calibration the matcher does not have.
 
 ## Architecture
 
@@ -58,8 +70,8 @@ All models trained on public datasets (Apache 2.0) and published on HuggingFace:
 | Model | Classes | Accuracy | F1 | Published |
 |-------|---------|----------|----|-----------|
 | [vet-dermatology-canine](https://huggingface.co/ikchain/vet-dermatology-canine) | 6 (demodicosis, dermatitis, fungal, healthy, hypersensitivity, ringworm) | 94.0% | 0.923 | ikchain/vet-dermatology-canine |
-| [vet-dermatology-feline](https://huggingface.co/ikchain/vet-dermatology-feline) | 5 (fungal, healthy, ringworm, scabies, sporotrichosis) | 90.1% | 0.902 | ikchain/vet-dermatology-feline |
-| [vet-parasites-blood](https://huggingface.co/ikchain/vet-parasites-blood) | 12 (Leishmania, Plasmodium, Babesia, Toxoplasma, etc.) | 99.87% | 0.997 | ikchain/vet-parasites-blood |
+| [vet-dermatology-feline](https://huggingface.co/ikchain/vet-dermatology-feline) | 4 (flea allergy, healthy, ringworm, scabies) | 90.1% | 0.902 | ikchain/vet-dermatology-feline |
+| [vet-parasites-blood](https://huggingface.co/ikchain/vet-parasites-blood) | 8 (Babesia, Leishmania, Plasmodium, Toxoplasma, Trichomonad, Trypanosome + RBC and leukocyte controls) | 99.87% | 0.997 | ikchain/vet-parasites-blood |
 
 Canine dermatology exported to ONNX INT8 (19.7MB) for offline browser inference at 675ms on mid-range Android.
 
@@ -96,6 +108,12 @@ Services start with health checks. Backend runs PostgreSQL migrations and Qdrant
 | Vision ECE (calibration) | 0.027 dermatology, 0.002 parasites |
 
 Full benchmark data in [`benchmarks/`](benchmarks/).
+
+## Design rationale
+
+Internal design specs and decision logs live in [`docs/superpowers/specs/`](docs/superpowers/specs/). They document the brainstorming, the agent reviews (engineering, UX, ML rigor), and the trade-offs behind each major feature — including why the offline triage matcher needed an emergency keyword override before it could ship safely. They are written informally, sometimes in Spanish, and exposed deliberately so anyone can see how the project actually evolved beyond what fits in a commit message.
+
+The emergency override list, the stopword filter, and the score-tier thresholds were all derived empirically against the real corpus, not picked by intuition. The relevant work is in [`frontend/src/lib/triage.ts`](frontend/src/lib/triage.ts) and the matching design doc.
 
 ## License
 
