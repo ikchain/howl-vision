@@ -40,6 +40,7 @@ export async function saveAnalysis(
   const db = await getDb();
   const thumbnail = await createThumbnail(file);
   const record: AnalysisRecord = {
+    kind: "image",
     id: result.analysis_id,
     timestamp: Date.now(),
     species,
