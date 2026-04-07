@@ -7,9 +7,13 @@
 .superpowers/
 .serena/
 
-# Local-only project context and environment-specific overrides
+# Local-only project context and environment-specific overrides.
+# compose override on disk in this private working tree. Keep it listed
+# literally so it stays ignored; the public mirror does not ship this file
+# and .gitignore is excluded from the sync, so the leaky name stays local.
 CLAUDE.md
 docker-compose.*.local.yml
+docker-compose.prod.yml
 
 # Model weights (download on deploy)
 data/models/**/*.pt
