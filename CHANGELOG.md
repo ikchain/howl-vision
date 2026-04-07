@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 - **IndexedDB v1→v2 migration:** `db.ts` `DB_VERSION` bumped a 2. Upgrade callback usa `oldVersion` parameter explícito y `transaction.objectStore()` (NO `db.transaction()` que lanza `InvalidStateError`). Records v1 reciben `kind:"image"` automáticamente. `saveTriage()` añadido (separado de `saveAnalysis()` porque triage no tiene File ni thumbnail).
 - **History.tsx render union:** Switch sobre `record.kind` PRIMERO. `ImageRow` (thumbnail + classification) y `TriageRow` (FileText icon + "Symptom check" label) componentes separados. Detail view discriminado por kind: image → ResultCard, triage → blockquote `"You wrote: ..."` + TriageResultCard.
 - **Profile triageHint:** `profile.ts` `ProfileConfig` extendido con `triageHint` per profile (pet_owner / lab_tech / field_worker).
-- **Spec  (889 líneas):** `docs/superpowers/specs/2026-04-07-text-triage-ui-design.md` con 16 design decisions, 26 acceptance criteria, schemas TypeScript formales, score tier thresholds empíricamente derivados, 3 reviews de agentes integrados (senior-code-engineer ×2, senior-ui-architect, ml-eval-rigor ×2), §13 self-review substantive (no performativa).
+- **Spec :** 16 design decisions, 26 acceptance criteria, schemas TypeScript formales, score tier thresholds empíricamente derivados, 3 reviews de agentes integrados (senior-code-engineer ×2, senior-ui-architect, ml-eval-rigor ×2).
 
 ### Fixed (2026-04-07) — SAFETY BLOCKING 
 - **Emergency keyword override en triage.ts:** ~70 keywords en `triage()` entry point, escaneadas ANTES de decidir entre server y offline. Aplica incluso si el server responde — client-side last firewall. Lista incluye toxic ingestion (chocolate, xylitol, grape, raisin, onion, garlic, ibuprofen, acetaminophen, paracetamol, aspirin, metaldehyde, rat poison, rodenticide, antifreeze, ethylene glycol, **permethrin** crítico para gatos, lilies, sago palm, macadamia, avocado, alcohol, ethanol), neurológico/cardiopulmonar (seizure, convulsion, unconscious, collapse, can't breathe, gasping, blue/pale gums), GDV (bloat, torsion, distended abdomen), hemorragia (bleeding, blood in urine/stool, vomiting blood), trauma (hit by car, broken bone, shock), térmico (heatstroke, hypothermia, electrocution), urinario felino (can't urinate, blocked bladder), dystocia, anaphylaxis. **Smoking gun verificado empíricamente**: matcher pre-fix devolvía "Ear Infections monitor" para `"my dog ate chocolate and is vomiting"` porque el token `"and"` matcheaba 54/104 records.
@@ -26,14 +26,14 @@ All notable changes to this project will be documented in this file.
 - **Cifra OMS rabia 59 000 muertes/año** insertada (verificada contra WHO Fact Sheet).
 
 ### Added (2026-04-06)
-- **Hetzner Deploy :** app.howlvision.com live. SSH tunnel (40220/40221) from home PC GPU to Hetzner Docker. Nginx SSL, iptables, docker-compose.prod.yml. $0 cost (no ORI needed).
+- **Public Deploy :** app.howlvision.com live. Hybrid topology: non-GPU services on a cloud host, GPU inference services on a developer workstation, linked by an SSH tunnel so the PWA can reach Gemma 4 + vision models over HTTPS. Nginx SSL.
 - **GitHub Public Repo :** github.com/ikchain/howl-vision with full commit history. README rewritten with narrative + HF model links.
 - **History Detail View:** Tap analysis record to open full ResultCard in full-screen scrollable overlay.
 - **Backend Startup Init:** Lifespan handler runs PostgreSQL migrations + Qdrant collection setup automatically.
 
 ### Fixed (2026-04-06)
 - **E2E Polish (10 fixes):** Source badge on ResultCard, ONNX loading feedback, file input retry, object URL leak (W3), profile change in About, history timestamps+loading, About subtitle One Health, QR port configurable (W7), offline triage species (W5).
-- **Ollama routing:** routes_triage.py + executor.py replaced bare `ollama.chat()` with httpx via settings.ollama_base_url (required for tunnel deploy).
+- **Ollama routing:** routes_triage.py + executor.py replaced bare `ollama.chat()` with httpx via settings.ollama_base_url (required so the backend can reach Ollama over a configurable URL instead of localhost).
 - **Same-origin API:** getEffectiveServerUrl() falls back to window.location.origin for deployed PWA.
 - **ConnectionBadge:** Uses same-origin health check. Nginx proxies /health to backend.
 - **Onboarding gate:** Profile selection re-renders via tick counter (navigate /capture→/capture was a no-op).

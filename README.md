@@ -113,9 +113,9 @@ Full benchmark data in [`benchmarks/`](benchmarks/).
 
 ## Design rationale
 
-Internal design specs and decision logs live in [`docs/superpowers/specs/`](docs/superpowers/specs/). They document the brainstorming, the agent reviews (engineering, UX, ML rigor), and the trade-offs behind each major feature — including why the offline triage matcher needed an emergency keyword override before it could ship safely. They are written informally, sometimes in Spanish, and exposed deliberately so anyone can see how the project actually evolved beyond what fits in a commit message.
+The emergency override list, the stopword filter, and the score-tier thresholds in the offline triage matcher were all derived empirically against the real corpus, not picked by intuition. The relevant logic lives in [`frontend/src/lib/triage.ts`](frontend/src/lib/triage.ts).
 
-The emergency override list, the stopword filter, and the score-tier thresholds were all derived empirically against the real corpus, not picked by intuition. The relevant work is in [`frontend/src/lib/triage.ts`](frontend/src/lib/triage.ts) and the matching design doc.
+The matcher pre-fix returned `"Ear Infections"` for inputs like `"my dog ate chocolate"` because a handful of high-frequency tokens (`dog`, `and`) were matching uniformly across the corpus. The current implementation applies an emergency keyword override **before** the matcher runs, plus a stopword filter inside `tokenize()`, plus a discrete score tier so low-signal matches are shown as low-confidence rather than as diagnoses.
 
 ## License
 

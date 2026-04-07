@@ -1,15 +1,15 @@
 # Secrets & local config
 .env
 .env.*
+!.env.example
 .mcp.json
 .claude/
 .superpowers/
+.serena/
 
-# Internal infra & local context (NOT for public repo)
-# These contain Hetzner IP, internal hosts, dev paths, and Jira refs.
-# Keep them on disk for local use, do NOT publish.
+# Local-only project context and environment-specific overrides
 CLAUDE.md
-docker-compose.prod.yml
+docker-compose.*.local.yml
 
 # Model weights (download on deploy)
 data/models/**/*.pt

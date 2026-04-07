@@ -178,7 +178,8 @@ async def generate_narrative(
     """Generate a clinical narrative from classification results using Gemma 4.
 
     Uses httpx to call the Ollama /api/chat endpoint so the URL from
-    settings.ollama_base_url is respected (required for the Hetzner tunnel).
+    settings.ollama_base_url is respected (required when Ollama runs on a
+    different host than the backend, reached over a configurable URL).
     """
     diff_text = (
         ", ".join(d.get("label", "") for d in differentials[:3])
