@@ -3,18 +3,25 @@ import { X } from "lucide-react";
 import { getAnalyses } from "../lib/db";
 import { UrgencyBadge } from "../components/shared/UrgencyBadge";
 import { ResultCard } from "../components/shared/ResultCard";
-import type { AnalysisRecord } from "../types";
+import type { ImageAnalysisRecord } from "../types";
 
 export default function History() {
-  const [records, setRecords] = useState<AnalysisRecord[]>([]);
+  // TODO: rewrite to render the full HistoryRecord union with
+  // discriminator switch on `kind`. For now this view filters to image-only
+  // records so the component keeps compiling while Phase 3 (db.ts) lands the
+  // union. Triage records are persisted but invisible until Phase 7 — that is
+  // acceptable because Capture.tsx (Phase 6) hasn't shipped them yet either.
+  const [records, setRecords] = useState<ImageAnalysisRecord[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<AnalysisRecord | null>(null);
+  const [selected, setSelected] = useState<ImageAnalysisRecord | null>(null);
 
   useEffect(() => {
     setLoading(true);
     getAnalyses(filter === "all" ? undefined : filter)
-      .then(setRecords)
+      .then((all) =>
+        setRecords(all.filter((r): r is ImageAnalysisRecord => r.kind === "image")),
+      )
       .catch(() => setRecords([]))
       .finally(() => setLoading(false));
   }, [filter]);
