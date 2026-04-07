@@ -55,7 +55,7 @@ export default function Onboarding({ onComplete }: Props = {}) {
         </div>
 
         <p className="text-center text-[10px] text-content-muted">
-          You can change this later in About
+          You can change this anytime from the header
         </p>
       </div>
     </div>

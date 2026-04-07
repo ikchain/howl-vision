@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { BottomTabBar } from "./components/layout/BottomTabBar";
 import { ConnectionBadge } from "./components/layout/ConnectionBadge";
+import { ProfileSwitcher } from "./components/layout/ProfileSwitcher";
 import { getProfile } from "./lib/profile";
 import Capture from "./pages/Capture";
 import History from "./pages/History";
@@ -18,7 +19,10 @@ function AppLayout() {
           <img src="/logo-white.svg" alt="Howl Vision" className="w-5 h-5" />
           <span className="text-xs font-semibold tracking-widest text-content-primary">HOWL VISION</span>
         </div>
-        <ConnectionBadge />
+        <div className="flex items-center gap-3">
+          <ProfileSwitcher />
+          <ConnectionBadge />
+        </div>
       </header>
       <main className="max-w-lg mx-auto">
         <Routes>
