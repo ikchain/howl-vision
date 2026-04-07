@@ -117,6 +117,16 @@ The emergency override list, the stopword filter, and the score-tier thresholds 
 
 The matcher pre-fix returned `"Ear Infections"` for inputs like `"my dog ate chocolate"` because a handful of high-frequency tokens (`dog`, `and`) were matching uniformly across the corpus. The current implementation applies an emergency keyword override **before** the matcher runs, plus a stopword filter inside `tokenize()`, plus a discrete score tier so low-signal matches are shown as low-confidence rather than as diagnoses.
 
+## Hook setup after clone
+
+This repository ships a pre-push audit hook at `.githooks/pre-push`. Git does not install hooks from `.githooks/` automatically — you must tell it where to look:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Run this once after cloning. The hook scans the tree of every ref being pushed (branches and tags) for sensitive patterns — server IPs, internal hosts, tokens, dev paths, and forbidden filenames — and blocks the push if any match. Bypassing it requires an explicit `git push --no-verify`, which should only be used when you have verified the hit is a false positive.
+
 ## License
 
 Apache 2.0
