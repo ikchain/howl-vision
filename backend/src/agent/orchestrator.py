@@ -8,7 +8,7 @@ import json
 import logging
 from collections.abc import AsyncGenerator
 
-from ollama import Client
+from ollama import AsyncClient
 
 from src.agent.executor import execute_tool_calls
 from src.agent.tools import SYSTEM_PROMPT, TOOL_DEFINITIONS
@@ -20,8 +20,14 @@ logger = logging.getLogger(__name__)
 STREAM_CHUNK_WORDS = 3
 
 
-def _get_ollama_client() -> Client:
-    return Client(host=settings.ollama_base_url)
+def _get_ollama_client() -> AsyncClient:
+    # AsyncClient wraps httpx.AsyncClient internally so every chat() call
+    # is awaitable. The previous sync Client blocked the FastAPI event loop
+    # for the full duration of the generation, so any concurrent request
+    # (triage, another analysis, a healthcheck from the frontend) had to
+    # wait until the first generation finished. With the async client the
+    # loop yields while waiting on the model, and other handlers run.
+    return AsyncClient(host=settings.ollama_base_url)
 
 
 def _build_initial_messages(message: str, image_b64: str | None) -> list[dict]:
@@ -60,8 +66,10 @@ async def run_agent(
             iteration += 1
             logger.info("Agent loop iteration %d/%d", iteration, settings.agent_max_iterations)
 
-            # Synchronous call — no streaming during tool-calling iterations
-            response = client.chat(
+            # Awaited call — no streaming during tool-calling iterations.
+            # The event loop is free to serve other requests while the
+            # model generates.
+            response = await client.chat(
                 model=settings.ollama_model,
                 messages=messages,
                 tools=TOOL_DEFINITIONS,
