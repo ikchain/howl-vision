@@ -23,6 +23,7 @@ services:
 
   vision-service:
     build: ./vision-service
+    restart: unless-stopped
     ports:
       - "20002:20002"
     env_file: .env
