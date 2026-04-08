@@ -4,7 +4,7 @@
 
 A pet owner at 3am with a worried dog. A lab technician in a rural clinic with a microscope and no dermatologist. A shelter volunteer screening 40 dogs after a rescue. They all need the same thing: a second opinion from someone who has seen this before.
 
-Howl Vision is a veterinary AI copilot that puts dermatology classification, blood parasite detection, clinical knowledge search, and drug interaction checks into a single PWA — usable on any phone, with or without internet.
+Howl Vision is a veterinary AI copilot in a single PWA. Image classification and symptom triage with a safety override run fully offline on any phone. The full Gemma 4 E4B agent — function calling, RAG over 22K cases, drug dosage, and interaction checks — runs against a local server hub or against the public demo.
 
 Built for the [Gemma 4 Good Hackathon](https://www.kaggle.com/competitions/gemma-4-good-hackathon) (Kaggle / Google DeepMind, 2026).
 
@@ -47,22 +47,35 @@ The relevance score in the offline path is shown as three discrete tiers (low / 
 
 ## Architecture
 
-```
-Phone (PWA)
-  ├── Offline: ONNX Runtime Web (WASM) + IndexedDB history
-  └── Online: POST /api/v1/analyze
-                    │
-        ┌───────────┴───────────┐
-        │    Backend (FastAPI)   │
-        │    Gemma 4 E4B Agent   │
-        │    ↕ function calling  │
-        ├────────────────────────┤
-        │ Vision    │ RAG       │
-        │ Service   │ Qdrant    │
-        │ (PyTorch) │ 22K vecs  │
-        ├────────────────────────┤
-        │ PostgreSQL │ Redis    │
-        └────────────────────────┘
+```mermaid
+flowchart TD
+    P([Phone PWA])
+
+    subgraph OFFLINE["On-device — works offline"]
+        ONNX[ONNX Runtime Web<br/>image classification<br/>20MB INT8 model]
+        TR[Symptom triage<br/>matcher + safety override]
+        IDB[(IndexedDB<br/>history)]
+    end
+
+    subgraph SERVER["Server — local hub or cloud demo"]
+        API[FastAPI<br/>POST /api/v1/*]
+        AG{Gemma 4 E4B<br/>agent loop<br/>function calling}
+        VS[Vision Service<br/>PyTorch · 4 models]
+        Q[(Qdrant + SapBERT<br/>22K cases)]
+        PG[(PostgreSQL<br/>drugs + interactions)]
+        R[(Redis cache)]
+
+        API --> AG
+        AG --> VS
+        AG --> Q
+        AG --> PG
+        AG -.-> R
+    end
+
+    P --> ONNX
+    P --> TR
+    P --> IDB
+    P -->|when connected| API
 ```
 
 ## Vision models
