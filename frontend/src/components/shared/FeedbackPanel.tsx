@@ -9,7 +9,7 @@ const LABEL_OPTIONS = [
   { value: "Dermatitis", label: "Dermatitis" },
   { value: "Fungal_infections", label: "Fungal infection" },
   { value: "Healthy", label: "Healthy" },
-  { value: "Hypersensitivity_Allergic_Dermatitis", label: "Hypersensitivity / Allergic" },
+  { value: "Hypersensitivity_Allergic_Dermatitis", label: "Allergic / Hyper." },
   { value: "ringworm", label: "Ringworm" },
   { value: "other", label: "Other condition" },
   { value: "not_skin", label: "Not a skin condition" },
@@ -92,11 +92,11 @@ export function FeedbackPanel({
             What do you think this is?
           </p>
 
-          <div className="space-y-1">
+          <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
             {LABEL_OPTIONS.map((opt) => (
               <label
                 key={opt.value}
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors ${
+                className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs cursor-pointer transition-colors ${
                   selectedLabel === opt.value
                     ? "bg-teal/15 text-teal-text"
                     : "text-content-secondary hover:bg-ocean-surface"
@@ -127,7 +127,7 @@ export function FeedbackPanel({
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional: describe what you see (e.g., wart, wound, abscess)"
             maxLength={500}
-            rows={2}
+            rows={1}
             className="w-full bg-ocean-surface border border-ocean-border rounded-lg px-3 py-2 text-xs text-content-primary placeholder:text-content-muted resize-none focus:border-teal/60 focus:outline-none"
           />
 

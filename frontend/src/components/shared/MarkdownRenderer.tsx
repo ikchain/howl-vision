@@ -8,7 +8,7 @@ interface Props {
 
 export default function MarkdownRenderer({ content, streaming }: Props) {
   return (
-    <div className="prose prose-invert prose-sm max-w-none">
+    <div className="prose prose-invert prose-sm max-w-none text-[12px] leading-relaxed [&_p]:text-justify [&_p]:hyphens-auto">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -17,7 +17,7 @@ export default function MarkdownRenderer({ content, streaming }: Props) {
             <strong className="text-teal-text font-semibold">{children}</strong>
           ),
           li: ({ children }) => (
-            <li className="text-gray-200 my-0.5">{children}</li>
+            <li className="text-content-secondary my-0.5">{children}</li>
           ),
         }}
       >

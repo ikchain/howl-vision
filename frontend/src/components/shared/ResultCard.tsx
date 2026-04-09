@@ -84,7 +84,7 @@ export function ResultCard({ result, previewUrl, imageFile, species = "canine" }
               </div>
               <ConfidenceBar value={classification.confidence} />
               {lowConfidence && (
-                <p className="text-xs text-red-400 mt-1">Low confidence — consult a veterinarian</p>
+                <p className="text-[10px] text-red-400/80 mt-1">Low confidence — consult a veterinarian</p>
               )}
             </>
           )}
