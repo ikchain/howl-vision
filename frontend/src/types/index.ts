@@ -90,6 +90,8 @@ export interface AnalyzeResponse {
   rag_matches: Array<{ case_id: string; similarity: number; summary: string }>;
   pharma: Array<{ drug: string; dosage: string; warnings: string }>;
   source: string;
+  /** Present when source is "local_ai" and the server was attempted but failed. */
+  fallback_reason?: string;
 }
 
 // -- History --

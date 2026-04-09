@@ -88,4 +88,30 @@ app.include_router(qr_router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "backend"}
+    """Liveness check with optional upstream probe.
+
+    Always returns 200 so the frontend ConnectionBadge can distinguish
+    "backend reachable" from "backend down".  The `upstreams` dict tells
+    the caller whether the full analyze pipeline will work.
+    """
+    import httpx
+
+    upstreams: dict[str, bool] = {}
+    async with httpx.AsyncClient(timeout=3.0) as client:
+        try:
+            r = await client.get(f"{settings.vision_service_url.rstrip('/')}/health")
+            upstreams["vision_service"] = r.status_code == 200
+        except Exception:
+            upstreams["vision_service"] = False
+        try:
+            r = await client.get(f"{settings.ollama_base_url.rstrip('/')}/api/tags")
+            upstreams["ollama"] = r.status_code == 200
+        except Exception:
+            upstreams["ollama"] = False
+
+    all_ok = all(upstreams.values())
+    return {
+        "status": "ok" if all_ok else "degraded",
+        "service": "backend",
+        "upstreams": upstreams,
+    }

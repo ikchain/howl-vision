@@ -26,35 +26,53 @@ export function clearServerUrl(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-export async function checkServerHealth(url: string): Promise<boolean> {
+export interface HealthStatus {
+  reachable: boolean;
+  /** True only when backend AND all upstreams (vision, ollama) are healthy. */
+  fullPipeline: boolean;
+}
+
+export async function checkServerHealth(url: string): Promise<HealthStatus> {
   try {
     const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) return false;
+    if (!res.ok) return { reachable: false, fullPipeline: false };
     const data = await res.json();
-    return data.status === "ok";
+    const reachable = true;
+    const fullPipeline = data.status === "ok";
+    return { reachable, fullPipeline };
   } catch {
-    return false;
+    return { reachable: false, fullPipeline: false };
   }
 }
 
+export type ConnectionState = "disconnected" | "degraded" | "connected";
+
 /**
  * Starts polling server health. Returns cleanup function.
- * Calls onChange(true) when server becomes available, onChange(false) when lost.
+ * Calls onChange with the current connection state:
+ *   - "connected"    — backend + all upstreams healthy
+ *   - "degraded"     — backend reachable but vision-service or ollama down
+ *   - "disconnected" — backend unreachable
  */
 export function watchServerConnection(
-  onChange: (connected: boolean) => void,
+  onChange: (state: ConnectionState) => void,
 ): () => void {
-  let alive = false;
+  let current: ConnectionState = "disconnected";
   let timer: ReturnType<typeof setInterval>;
 
   async function poll() {
     const url = getEffectiveServerUrl();
     if (!url) {
-      if (alive) { alive = false; onChange(false); }
+      if (current !== "disconnected") { current = "disconnected"; onChange(current); }
       return;
     }
-    const ok = await checkServerHealth(url);
-    if (ok !== alive) { alive = ok; onChange(ok); }
+    const health = await checkServerHealth(url);
+    const next: ConnectionState = !health.reachable
+      ? "disconnected"
+      : health.fullPipeline
+        ? "connected"
+        : "degraded";
+    if (next !== current) { current = next; onChange(next); }
   }
 
   poll();
