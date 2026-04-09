@@ -12,7 +12,7 @@ Built for the [Gemma 4 Good Hackathon](https://www.kaggle.com/competitions/gemma
 
 ## What it does
 
-There are two ways to ask Howl Vision about an animal: take a photo, or describe what you see in writing. Both flows live on the same screen, behind a single toggle.
+There are two ways to ask Howl Vision about an animal: take a photo (live camera or gallery), or describe what you see in writing. Both flows live on the same screen, behind a single toggle.
 
 The app works in three modes depending on connectivity:
 
@@ -32,6 +32,26 @@ When connected, Gemma 4 E4B acts as an agent that autonomously selects which too
 | `search_clinical_cases` | Semantic search across 22K clinical records | Qdrant + SapBERT 768d |
 | `calculate_dosage` | Drug dosage by species and weight | PostgreSQL (38 drugs, Merck source) |
 | `check_drug_interactions` | Known interactions between drugs | PostgreSQL (14 interactions) |
+
+### Confidence and honesty
+
+Not all classifications are equal. The app rates every result against empirically validated thresholds from the model's own calibration data:
+
+| State | Confidence | What the user sees |
+|-------|-----------|-------------------|
+| **Confident** | ≥ 80% | Green badge. Full Gemma 4 narrative with clinical assessment. |
+| **Low confidence** | 50–80% | Amber badge. Gemma 4 narrative leads with uncertainty and weighs differentials equally. |
+| **Inconclusive** | < 80% | Red badge. No AI narrative generated — a disclaimer replaces it. Top-3 model guesses shown for transparency. |
+
+Below 50%, the model's in-distribution accuracy drops to ~47% (measured on the benchmark test set), which is functionally random for a 6-class classifier. Rather than generate a persuasive narrative about a garbage classification, the app says "I don't know" and shows what the model considered. The entropy of the softmax distribution is logged in every response for future out-of-distribution analysis.
+
+When a result is inconclusive, no Gemma 4 call and no RAG search are made — both would anchor on an unreliable label.
+
+### Active learning feedback
+
+When a result is uncertain (low confidence or inconclusive), users can tap **"Help improve: What is this?"** to label what they see. The inline panel offers the model's known conditions plus "Other condition" and "Not a skin condition", with an optional free-text field.
+
+Feedback is saved offline-first to IndexedDB and synced to the server when connectivity is available. The server stores the original image and the user's label for future model improvement. Labels are stored as user opinions, not ground truth — a shelter volunteer is not a dermatologist. No automatic retraining occurs; a human reviews the data before any model update.
 
 ### Symptom triage and the safety override
 
@@ -60,9 +80,9 @@ flowchart TD
     subgraph SERVER["Server — local hub or cloud demo"]
         API[FastAPI<br/>POST /api/v1/*]
         AG{Gemma 4 E4B<br/>agent loop<br/>function calling}
-        VS[Vision Service<br/>PyTorch · 4 models]
+        VS[Vision Service<br/>PyTorch · 4 models<br/>entropy + prediction quality]
         Q[(Qdrant + SapBERT<br/>22K cases)]
-        PG[(PostgreSQL<br/>drugs + interactions)]
+        PG[(PostgreSQL<br/>drugs + interactions<br/>+ user feedback)]
         R[(Redis cache)]
 
         API --> AG
@@ -76,6 +96,7 @@ flowchart TD
     P --> TR
     P --> IDB
     P -->|when connected| API
+    API -->|/health deep check| VS
 ```
 
 ## Vision models
