@@ -4,7 +4,7 @@
 
 A pet owner at 3am with a worried dog. A lab technician in a rural clinic with a microscope and no dermatologist. A shelter volunteer screening 40 dogs after a rescue. They all need the same thing: a second opinion from someone who has seen this before.
 
-Howl Vision is a veterinary AI copilot in a single PWA. Image classification and symptom triage with a safety override run fully offline on any phone. The full Gemma 4 E4B agent — function calling, RAG over 22K cases, drug dosage, and interaction checks — runs against a local server hub or against the public demo.
+Howl Vision is a veterinary AI copilot in a single PWA. Image classification, symptom triage with a safety override, and active learning feedback run fully offline on any phone. When connected — via the public demo or a local server — the full Gemma 4 E4B agent takes over: function calling, RAG over 22K clinical cases, drug dosage, and interaction checks. The app is honest about what it knows: high-confidence results get full clinical narratives, uncertain ones get disclaimers, and results below 50% confidence say "I don't know" instead of guessing.
 
 Built for the [Gemma 4 Good Hackathon](https://www.kaggle.com/competitions/gemma-4-good-hackathon) (Kaggle / Google DeepMind, 2026).
 
@@ -14,13 +14,14 @@ Built for the [Gemma 4 Good Hackathon](https://www.kaggle.com/competitions/gemma
 
 There are two ways to ask Howl Vision about an animal: take a photo (live camera or gallery), or describe what you see in writing. Both flows live on the same screen, behind a single toggle.
 
-The app works in three modes depending on connectivity:
+The app works in two modes depending on connectivity:
 
-| Mode | What's available | Requires |
-|------|-----------------|----------|
-| **Offline** | Skin lesion classification via ONNX (sub-second, 20MB model) + symptom triage by text with emergency keyword detection | Nothing — works on the phone alone |
-| **Clinic Hub** | Full analysis: Gemma 4 narratives + RAG + parasitology + pharma | Local server via QR connect |
-| **Cloud** | Same as Clinic Hub | Internet connection to app.howlvision.com |
+| Mode | What's available | How it connects |
+|------|-----------------|-----------------|
+| **Offline** | Skin lesion classification via ONNX (sub-second, 20MB model) + symptom triage by text with emergency keyword detection + active learning feedback (queued for later sync) | Nothing — works on the phone alone |
+| **Connected** | Everything above + Gemma 4 clinical narratives + RAG over 22K cases + parasitology + drug dosage and interaction checks + feedback sync to server | Automatic when accessed via [app.howlvision.com](https://app.howlvision.com), or via QR code to a local server on the same network |
+
+The connection badge in the header shows the real state of the pipeline — not just whether the server is reachable, but whether the vision service and the language model behind it are both healthy. If the server is up but an upstream service is down, the badge shows **"Limited"** instead of pretending everything works.
 
 When connected, Gemma 4 E4B acts as an agent that autonomously selects which tools to call:
 
@@ -41,7 +42,7 @@ Not all classifications are equal. The app rates every result against empiricall
 |-------|-----------|-------------------|
 | **Confident** | ≥ 80% | Green badge. Full Gemma 4 narrative with clinical assessment. |
 | **Low confidence** | 50–80% | Amber badge. Gemma 4 narrative leads with uncertainty and weighs differentials equally. |
-| **Inconclusive** | < 80% | Red badge. No AI narrative generated — a disclaimer replaces it. Top-3 model guesses shown for transparency. |
+| **Inconclusive** | < 50% | Red badge. No AI narrative generated — a disclaimer replaces it. Top-3 model guesses shown for transparency. |
 
 Below 50%, the model's in-distribution accuracy drops to ~47% (measured on the benchmark test set), which is functionally random for a 6-class classifier. Rather than generate a persuasive narrative about a garbage classification, the app says "I don't know" and shows what the model considered. The entropy of the softmax distribution is logged in every response for future out-of-distribution analysis.
 
@@ -71,32 +72,39 @@ The relevance score in the offline path is shown as three discrete tiers (low / 
 flowchart TD
     P([Phone PWA])
 
-    subgraph OFFLINE["On-device — works offline"]
+    subgraph OFFLINE["On-device — always available"]
         ONNX[ONNX Runtime Web<br/>image classification<br/>20MB INT8 model]
+        CQ{Confidence<br/>check}
         TR[Symptom triage<br/>matcher + safety override]
-        IDB[(IndexedDB<br/>history)]
+        FB_LOCAL[(IndexedDB<br/>history + feedback queue)]
     end
 
-    subgraph SERVER["Server — local hub or cloud demo"]
+    subgraph SERVER["Server — via app.howlvision.com or local QR"]
+        HEALTH[/health<br/>deep check/]
         API[FastAPI<br/>POST /api/v1/*]
-        AG{Gemma 4 E4B<br/>agent loop<br/>function calling}
         VS[Vision Service<br/>PyTorch · 4 models<br/>entropy + prediction quality]
+        AG{Gemma 4 E4B<br/>agent loop<br/>function calling}
         Q[(Qdrant + SapBERT<br/>22K cases)]
         PG[(PostgreSQL<br/>drugs + interactions<br/>+ user feedback)]
         R[(Redis cache)]
 
-        API --> AG
-        AG --> VS
+        HEALTH --> VS
+        API --> VS
+        VS -->|confident / low_confidence| AG
+        VS -->|inconclusive| API
         AG --> Q
         AG --> PG
         AG -.-> R
     end
 
     P --> ONNX
+    ONNX --> CQ
+    CQ -->|confident| FB_LOCAL
+    CQ -->|low / inconclusive| FB_LOCAL
     P --> TR
-    P --> IDB
-    P -->|when connected| API
-    API -->|/health deep check| VS
+    P -->|when connected| HEALTH
+    P -->|image + metadata| API
+    P -.->|feedback sync| API
 ```
 
 ## Vision models
