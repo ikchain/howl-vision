@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.routes_analyze import router as analyze_router
 from src.api.routes_cases import router as cases_router
 from src.api.routes_chat import router as chat_router
+from src.api.routes_feedback import router as feedback_router
 from src.api.routes_triage import router as triage_router
 from src.api.routes_qr import router as qr_router
 from src.config import settings
@@ -82,6 +83,7 @@ app.add_middleware(
 app.include_router(analyze_router)
 app.include_router(cases_router)
 app.include_router(chat_router)
+app.include_router(feedback_router)
 app.include_router(triage_router)
 app.include_router(qr_router)
 

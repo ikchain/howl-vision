@@ -153,6 +153,22 @@ export type HistoryRecord = ImageAnalysisRecord | TriageRecord;
 export const TRIAGE_SUMMARY_MAX_LEN = 200;
 
 
+// -- Feedback --
+
+export interface FeedbackRecord {
+  id: string;
+  analysis_id: string;
+  image_blob: Blob;
+  user_label: string;
+  notes: string;
+  original_label: string;
+  original_confidence: number;
+  prediction_quality: "confident" | "low_confidence" | "inconclusive";
+  species: "canine" | "feline";
+  timestamp: number;
+  synced: boolean;
+}
+
 // -- PWA --
 
 export interface BeforeInstallPromptEvent extends Event {

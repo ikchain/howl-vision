@@ -1,6 +1,7 @@
 import { openDB, type IDBPDatabase } from "idb";
 import type {
   AnalyzeResponse,
+  FeedbackRecord,
   HistoryRecord,
   ImageAnalysisRecord,
   TriageRecord,
@@ -9,7 +10,7 @@ import { TRIAGE_SUMMARY_MAX_LEN } from "../types";
 import type { TriageResult } from "./triage";
 
 const DB_NAME = "howl-vision";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 // "analyses" is the historical name from v1 when this store only held image
 // analyses. Since v2 it holds a discriminated union (HistoryRecord) of
@@ -18,6 +19,7 @@ const DB_VERSION = 2;
 // migration. Do not let the name mislead you: this is the history store, not
 // the image-analyses store.
 const STORE_NAME = "analyses";
+const FEEDBACK_STORE = "feedback";
 
 async function getDb(): Promise<IDBPDatabase> {
   return openDB(DB_NAME, DB_VERSION, {
@@ -59,6 +61,13 @@ async function getDb(): Promise<IDBPDatabase> {
           }
           cursor = await cursor.continue();
         }
+      }
+
+      if (oldVersion < 3) {
+        // v2 → v3: add feedback store for active learning (spec D8).
+        const fbStore = db.createObjectStore(FEEDBACK_STORE, { keyPath: "id" });
+        fbStore.createIndex("analysis_id", "analysis_id", { unique: true });
+        fbStore.createIndex("timestamp", "timestamp");
       }
     },
   });
@@ -146,4 +155,37 @@ export async function getAnalyses(species?: string): Promise<HistoryRecord[]> {
 export async function getAnalysis(id: string): Promise<HistoryRecord | undefined> {
   const db = await getDb();
   return (await db.get(STORE_NAME, id)) as HistoryRecord | undefined;
+}
+
+// -- Feedback store (active learning, spec D4/D8) --
+
+export async function saveFeedback(record: FeedbackRecord): Promise<void> {
+  const db = await getDb();
+  await db.put(FEEDBACK_STORE, record);
+}
+
+export async function getFeedbackByAnalysisId(
+  analysisId: string,
+): Promise<FeedbackRecord | undefined> {
+  const db = await getDb();
+  return (await db.getFromIndex(FEEDBACK_STORE, "analysis_id", analysisId)) as
+    | FeedbackRecord
+    | undefined;
+}
+
+export async function getPendingFeedback(): Promise<FeedbackRecord[]> {
+  const db = await getDb();
+  // IDB doesn't index booleans reliably — scan all and filter in JS.
+  // Feedback store is small (tens of records at most), so this is fine.
+  const all = (await db.getAll(FEEDBACK_STORE)) as FeedbackRecord[];
+  return all.filter((r) => !r.synced);
+}
+
+export async function markFeedbackSynced(id: string): Promise<void> {
+  const db = await getDb();
+  const record = (await db.get(FEEDBACK_STORE, id)) as FeedbackRecord | undefined;
+  if (record) {
+    record.synced = true;
+    await db.put(FEEDBACK_STORE, record);
+  }
 }
