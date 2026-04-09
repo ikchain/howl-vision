@@ -174,6 +174,7 @@ async def generate_narrative(
     differentials: list,
     species: str,
     module: str,
+    caution_mode: bool = False,
 ) -> str:
     """Generate a clinical narrative from classification results using Gemma 4.
 
@@ -186,14 +187,27 @@ async def generate_narrative(
         if differentials
         else "none"
     )
-    prompt = (
-        f"Species: {species}. Module: {module}.\n"
-        f"Automated classification result: {label} ({confidence * 100:.0f}% model score).\n"
-        f"Top differentials: {diff_text}.\n\n"
-        f"Provide a structured clinical assessment: findings, differential diagnosis, "
-        f"and recommended next steps. Be concise. Use veterinary terminology. "
-        f"State that this classification requires veterinary confirmation."
-    )
+
+    if caution_mode:
+        prompt = (
+            f"Species: {species}. Module: {module}.\n"
+            f"Automated classification result: {label} ({confidence * 100:.0f}% model score).\n"
+            f"Top differentials: {diff_text}.\n\n"
+            f"IMPORTANT: The model confidence is LOW. Lead your assessment with "
+            f"uncertainty. Do not anchor on the top classification — give equal "
+            f"weight to differentials. Emphasize that veterinary confirmation is "
+            f"essential before any action. Provide a structured clinical assessment: "
+            f"findings, differential considerations, and recommended next steps."
+        )
+    else:
+        prompt = (
+            f"Species: {species}. Module: {module}.\n"
+            f"Automated classification result: {label} ({confidence * 100:.0f}% model score).\n"
+            f"Top differentials: {diff_text}.\n\n"
+            f"Provide a structured clinical assessment: findings, differential diagnosis, "
+            f"and recommended next steps. Be concise. Use veterinary terminology. "
+            f"State that this classification requires veterinary confirmation."
+        )
 
     payload = {
         "model": settings.ollama_model,

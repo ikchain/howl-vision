@@ -21,4 +21,9 @@ TOP_K = 5
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 CLASSIFICATION_INPUT_SIZE = 384
+
+# Prediction quality thresholds (spec D1, D7).
+# Synced with frontend/src/lib/onnx.ts — update both together.
+CONFIDENT_THRESHOLD = 0.80
+INCONCLUSIVE_THRESHOLD = 0.50
 SEGMENTATION_INPUT_SIZE = 256

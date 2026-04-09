@@ -16,8 +16,10 @@ from torchvision import transforms as T
 
 from src.config import (
     CLASSIFICATION_INPUT_SIZE,
+    CONFIDENT_THRESHOLD,
     IMAGENET_MEAN,
     IMAGENET_STD,
+    INCONCLUSIVE_THRESHOLD,
     MIN_CONFIDENCE,
     TOP_K,
 )
@@ -90,10 +92,19 @@ class ClassificationModel(ABC):
                 "confidence_level": _confidence_level(prob),
             })
 
+        # Entropy of full distribution — logged for OOD analysis (spec D4).
+        # Not used as a UX gate until validated with OOD samples .
+        entropy = float(-np.sum(probs * np.log(probs + 1e-12)))
+
+        top1_prob = float(probs[top_indices[0]]) if len(top_indices) > 0 else 0.0
+        quality = _prediction_quality(top1_prob)
+
         elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
 
         return {
             "predictions": predictions,
+            "entropy": round(entropy, 4),
+            "prediction_quality": quality,
             "processing_time_ms": elapsed_ms,
         }
 
@@ -106,3 +117,16 @@ def _confidence_level(prob: float) -> str:
     if prob >= 0.3:
         return "low"
     return "very_low"
+
+
+def _prediction_quality(top1_prob: float) -> str:
+    """Classify overall inference reliability from top-1 probability.
+
+    Thresholds from benchmarks/vision/results.json calibration analysis:
+    >=0.80 → 98.4% accuracy, <0.50 → 47% accuracy (spec D1).
+    """
+    if top1_prob >= CONFIDENT_THRESHOLD:
+        return "confident"
+    if top1_prob >= INCONCLUSIVE_THRESHOLD:
+        return "low_confidence"
+    return "inconclusive"

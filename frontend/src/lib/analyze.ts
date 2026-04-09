@@ -121,8 +121,12 @@ export async function analyzeImage(
   }
 
   const classification = await onnx.classifyImage(image);
-  const urgency = determineUrgency(classification.label, classification.confidence);
-  const narrative = getTemplateNarrative(classification.label);
+  const narrative = getTemplateNarrative(classification.label, classification.prediction_quality);
+
+  // Inconclusive offline results get urgency "unknown" (spec D10)
+  const urgency = classification.prediction_quality === "inconclusive"
+    ? "unknown" as const
+    : determineUrgency(classification.label, classification.confidence);
 
   return {
     analysis_id: crypto.randomUUID(),
@@ -133,5 +137,7 @@ export async function analyzeImage(
     pharma: [],
     source: "local_ai",
     fallback_reason: fallbackReason,
+    prediction_quality: classification.prediction_quality,
+    entropy: classification.entropy,
   };
 }
