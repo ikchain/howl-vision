@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added (2026-04-09)
+- **Active Learning Feedback:** Inline FeedbackPanel on low_confidence/inconclusive results. 8 label options (6 classes + Other + Not skin) + free text. Offline-first dual-write: IndexedDB immediate → sequential POST to server. Backend stores images to disk + metadata to PostgreSQL. Startup sync retries pending feedback. One feedback per analysis (dedup by analysis_id).
+- **3-State Prediction Quality:** Vision-service computes `prediction_quality` (confident ≥0.80, low_confidence 0.50–0.80, inconclusive <0.50) + Shannon entropy. Inconclusive skips Gemma 4 narrative + RAG. Low confidence gets cautious narrative. Frontend ONNX replicates same thresholds. Thresholds from benchmark calibration data.
+- **Deep Health Check:** Backend `/health` probes vision-service and Ollama. Returns `"ok"` or `"degraded"` with upstream details. ConnectionBadge shows 3 states: green "Clinic Hub", amber "Limited", amber "Reconnecting...".
+
+### Fixed (2026-04-09)
+- **Silent ONNX Fallback:** Frontend now captures and surfaces server failure reason. ResultCard shows amber "Offline Fallback" badge with explanation when server was attempted but failed. Console.warn for debugging.
+- **Gallery Upload on Mobile:** Removed `capture="environment"` from file input so users can select from gallery or camera (reported by Noelia).
+- **History Detail Scroll Cutoff:** Increased bottom padding (pb-8 → pb-20) so content is visible above the fixed navigation bar.
+
+### Changed (2026-04-09)
+- **Narrative Text:** MarkdownRenderer now uses 12px justified text with CSS hyphens for clinical density on mobile.
+- **Feedback Panel:** 2-column grid layout, reduced padding, 1-row textarea for compact mobile UX.
+- **Urgency "unknown":** New urgency state for inconclusive results. UrgencyBadge hides when urgency is unknown.
+
 ### Added (2026-04-07)
 - **Text Triage UI:** Toggle `[Photo | Symptoms]` en Capture.tsx con ARIA radiogroup. Modo Symptoms con textarea (5-2000 chars), char counter, submit deshabilitado hasta válido, integración con `triage()` lib existente. Loading UX progresivo (`Checking symptoms...` → `Still working...` a los 3.5s). Resultado renderizado via nuevo `TriageResultCard.tsx` (~145 líneas) — emergency banner / source badge / inline disclaimer / tier indicator (3 dots discretos low/medium/high) / empty state. Module selector se oculta en symptoms mode. State cleared on toggle entre modos. Mergeado en `ca442dc`.
 - **Discriminated union HistoryRecord:** `types/index.ts` refactor — `AnalysisRecord` renamed a `ImageAnalysisRecord` con campo `kind:"image"` añadido. Nueva interface `TriageRecord` con `kind:"triage"`, `symptomsText`, `topCondition`, `urgency`, `recommendationSummary`, `fullResult` (no opcional). `HistoryRecord = ImageAnalysisRecord | TriageRecord` discriminated union. Constant `TRIAGE_SUMMARY_MAX_LEN = 200`.
