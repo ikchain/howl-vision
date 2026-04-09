@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import type { AnalyzeResponse } from "../../types";
 import { ConfidenceBar } from "./ConfidenceBar";
 import { UrgencyBadge } from "./UrgencyBadge";
@@ -9,9 +10,10 @@ interface Props {
 }
 
 export function ResultCard({ result, previewUrl }: Props) {
-  const { classification, narrative, urgency, rag_matches, source } = result;
+  const { classification, narrative, urgency, rag_matches, source, fallback_reason } = result;
   const lowConfidence = classification.confidence < 0.60;
   const isOffline = source === "local_ai";
+  const isSilentFallback = isOffline && !!fallback_reason;
 
   const borderClass = lowConfidence
     ? "border-red-500/40"
@@ -22,12 +24,21 @@ export function ResultCard({ result, previewUrl }: Props) {
   return (
     <div className={`rounded-xl border ${borderClass} bg-ocean-surface overflow-hidden`}>
       {/* Source indicator */}
-      <div className={`flex items-center gap-1.5 px-4 pt-3 ${isOffline ? "text-content-muted" : "text-teal-text"}`}>
-        <div className={`w-1.5 h-1.5 rounded-full ${isOffline ? "bg-gray-400" : "bg-teal"}`} />
+      <div className={`flex items-center gap-1.5 px-4 pt-3 ${isSilentFallback ? "text-amber-400" : isOffline ? "text-content-muted" : "text-teal-text"}`}>
+        {isSilentFallback ? (
+          <AlertTriangle size={12} className="text-amber-400 flex-shrink-0" />
+        ) : (
+          <div className={`w-1.5 h-1.5 rounded-full ${isOffline ? "bg-gray-400" : "bg-teal"}`} />
+        )}
         <span className="text-[10px] font-medium uppercase tracking-wider">
-          {isOffline ? "Local AI" : "Clinic Hub"}
+          {isSilentFallback ? "Offline Fallback" : isOffline ? "Local AI" : "Clinic Hub"}
         </span>
       </div>
+      {isSilentFallback && (
+        <p className="text-[10px] text-amber-400/80 px-4 mt-1">
+          Server was unreachable — using local classification only (no AI reasoning).
+        </p>
+      )}
 
       {/* Header: image + classification */}
       <div className="flex gap-4 p-4 pt-2">

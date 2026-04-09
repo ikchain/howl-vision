@@ -63,6 +63,9 @@ export async function analyzeImage(
 ): Promise<AnalyzeResponse> {
   const serverUrl = getEffectiveServerUrl();
 
+  // Track why the server path failed so the UI can surface it.
+  let fallbackReason: string | undefined;
+
   // Always try the server first when a URL is configured.
   // Only fall through to offline on network or server errors.
   if (serverUrl) {
@@ -81,9 +84,17 @@ export async function analyzeImage(
       if (res.ok) {
         return res.json() as Promise<AnalyzeResponse>;
       }
-      // Non-2xx from server — fall through to offline path below
-    } catch {
-      // Network error (timeout, DNS failure, etc.) — fall through to offline
+      // Non-2xx from server — capture the reason and fall through
+      const detail = await res.text().catch(() => "");
+      fallbackReason = `Server returned ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ""}`;
+      console.warn("[analyzeImage] server failed, falling back to offline.", fallbackReason);
+    } catch (err) {
+      // Network error (timeout, DNS failure, etc.)
+      fallbackReason =
+        err instanceof DOMException && err.name === "TimeoutError"
+          ? "Server request timed out (60 s)"
+          : `Network error: ${err instanceof Error ? err.message : String(err)}`;
+      console.warn("[analyzeImage] server unreachable, falling back to offline.", fallbackReason);
     }
   }
 
@@ -121,5 +132,6 @@ export async function analyzeImage(
     rag_matches: [],
     pharma: [],
     source: "local_ai",
+    fallback_reason: fallbackReason,
   };
 }
