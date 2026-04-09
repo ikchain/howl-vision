@@ -6,6 +6,11 @@ const INPUT_SIZE = 384;
 const MEAN: [number, number, number] = [0.485, 0.456, 0.406];
 const STD: [number, number, number] = [0.229, 0.224, 0.225];
 
+// Prediction quality thresholds (spec D1, D7).
+// Synced with vision-service/src/config.py — update both together.
+const CONFIDENT_THRESHOLD = 0.80;
+const INCONCLUSIVE_THRESHOLD = 0.50;
+
 // Class labels in the exact order the model outputs them.
 // Source: vision-service/src/models/dermatology.py CLASS_NAMES
 const CLASS_NAMES = [
@@ -90,6 +95,8 @@ export interface OnnxClassification {
   label: string;
   confidence: number;
   differentials: Array<{ label: string; confidence: number }>;
+  prediction_quality: "confident" | "low_confidence" | "inconclusive";
+  entropy: number;
 }
 
 export async function classifyImage(file: File): Promise<OnnxClassification> {
@@ -116,11 +123,23 @@ export async function classifyImage(file: File): Promise<OnnxClassification> {
   }));
   indexed.sort((a, b) => b.confidence - a.confidence);
 
+  // Entropy of full softmax distribution — logged for OOD analysis (spec D4).
+  const entropy = -probs.reduce((sum, p) => sum + (p > 1e-12 ? p * Math.log(p) : 0), 0);
+
   // CLASS_NAMES is non-empty (6 entries) so indexed is guaranteed non-empty after map
   const top = indexed[0]!;
+  const prediction_quality: OnnxClassification["prediction_quality"] =
+    top.confidence >= CONFIDENT_THRESHOLD
+      ? "confident"
+      : top.confidence >= INCONCLUSIVE_THRESHOLD
+        ? "low_confidence"
+        : "inconclusive";
+
   return {
     label: top.label,
     confidence: top.confidence,
     differentials: indexed.slice(1, 4),
+    prediction_quality,
+    entropy: Math.round(entropy * 10000) / 10000,
   };
 }

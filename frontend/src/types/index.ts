@@ -86,12 +86,14 @@ export interface AnalyzeResponse {
   analysis_id: string;
   classification: Classification;
   narrative: string;
-  urgency: "emergency" | "soon" | "monitor" | "healthy";
+  urgency: "emergency" | "soon" | "monitor" | "healthy" | "unknown";
   rag_matches: Array<{ case_id: string; similarity: number; summary: string }>;
   pharma: Array<{ drug: string; dosage: string; warnings: string }>;
   source: string;
   /** Present when source is "local_ai" and the server was attempted but failed. */
   fallback_reason?: string;
+  prediction_quality: "confident" | "low_confidence" | "inconclusive";
+  entropy: number;
 }
 
 // -- History --
@@ -115,7 +117,7 @@ export interface ImageAnalysisRecord {
   thumbnailDataUrl: string;
   classification: string;
   confidence: number;
-  urgency: "emergency" | "soon" | "monitor" | "healthy";
+  urgency: "emergency" | "soon" | "monitor" | "healthy" | "unknown";
   narrativeSummary: string;
   fullResult?: AnalyzeResponse;
 }

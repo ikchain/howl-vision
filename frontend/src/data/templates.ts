@@ -81,13 +81,37 @@ const TEMPLATES: Record<string, string> = {
 *This is an automated classification result, not a diagnosis. Veterinary confirmation is required.*`,
 };
 
-export function getTemplateNarrative(label: string): string {
-  return (
+const INCONCLUSIVE_TEMPLATE = `**Result: Inconclusive**
+
+The image does not clearly match any of the conditions this system was trained to recognize. The possibilities listed below are the model's best guesses, but none reached a sufficient confidence level.
+
+**Please consult a veterinarian for proper assessment.**
+
+*This is an automated classification result with low confidence. Do not act on this information without professional guidance.*`;
+
+const LOW_CONFIDENCE_PREFIX = `**Note: Low Confidence Classification**
+
+The following assessment is based on a classification result with limited confidence. The model is uncertain — consider the differentials carefully and seek veterinary confirmation before any action.\n\n`;
+
+export function getTemplateNarrative(
+  label: string,
+  prediction_quality: "confident" | "low_confidence" | "inconclusive" = "confident",
+): string {
+  if (prediction_quality === "inconclusive") {
+    return INCONCLUSIVE_TEMPLATE;
+  }
+
+  const base =
     TEMPLATES[label] ??
     `**Classification Result:** ${label.replace(/_/g, " ")}
 
 No detailed template available for this classification.
 
-*This is an automated classification result, not a diagnosis. Consult a veterinarian.*`
-  );
+*This is an automated classification result, not a diagnosis. Consult a veterinarian.*`;
+
+  if (prediction_quality === "low_confidence") {
+    return LOW_CONFIDENCE_PREFIX + base;
+  }
+
+  return base;
 }
