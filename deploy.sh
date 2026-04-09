@@ -5,8 +5,8 @@ echo "=== Howl Vision — Deploy ==="
 
 # Pull latest images
 echo "[1/4] Pulling Docker images..."
-docker compose -f docker-compose.yml -f docker-compose.prod.yml pull 2>/dev/null || true
-docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+docker compose -f docker-compose.yml pull 2>/dev/null || true
+docker compose -f docker-compose.yml build
 
 # Ensure Gemma 4 E4B is available in Ollama
 echo "[2/4] Pulling Gemma 4 E4B via Ollama..."
@@ -14,7 +14,7 @@ ollama pull gemma4:e4b
 
 # Start services
 echo "[3/4] Starting services..."
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml up -d
 
 # Wait for backend health
 echo "[4/4] Waiting for backend health..."

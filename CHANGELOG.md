@@ -53,7 +53,7 @@ All notable changes to this project will be documented in this file.
 - **ConnectionBadge:** Uses same-origin health check. Nginx proxies /health to backend.
 - **Onboarding gate:** Profile selection re-renders via tick counter (navigate /capture→/capture was a no-op).
 - **About page:** /chat link fixed to /capture, min-h-screen removed, mobile-first layout, pipeline row.
-- **Gitignore:** Training artifacts (~198MB), .claude/, .superpowers/, .env.*, *.tsbuildinfo protected.
+- **Gitignore:** Training artifacts (~198MB), .claude/, .env.*, *.tsbuildinfo protected.
 
 ### Added (2026-04-05)
 - **One Health Pivot:** PWA mobile-first with 3 modes (offline text, offline ONNX, server). BottomTabBar, QR Connect (jsQR), Onboarding (3 profiles), ConnectionBadge, Capture with species/module selector, IndexedDB history, ONNX INT8 browser inference (675ms), offline triage (500 symptoms + 38 pharma) — `ab6c264..c5aad57`

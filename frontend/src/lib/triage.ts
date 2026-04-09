@@ -3,7 +3,7 @@ import symptomsData from "../data/symptoms.json";
 import pharmaData from "../data/pharma.json";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Public type contracts (see docs/superpowers/specs/2026-04-07-text-triage-ui-design.md §6.5)
+// Public type contracts for triage functionality
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface TriageCondition {
