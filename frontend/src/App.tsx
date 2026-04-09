@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { BottomTabBar } from "./components/layout/BottomTabBar";
 import { ConnectionBadge } from "./components/layout/ConnectionBadge";
 import { ProfileSwitcher } from "./components/layout/ProfileSwitcher";
+import { syncPendingFeedback } from "./lib/feedback";
 import { getProfile } from "./lib/profile";
 import Capture from "./pages/Capture";
 import History from "./pages/History";
@@ -11,7 +12,15 @@ import { About } from "./pages/About";
 import QRConnect from "./pages/QRConnect";
 import { NotFound } from "./pages/NotFound";
 
+// Sync pending feedback on startup (spec D4 — sequential, non-blocking)
+function useFeedbackSync() {
+  useEffect(() => {
+    syncPendingFeedback().catch(() => {});
+  }, []);
+}
+
 function AppLayout() {
+  useFeedbackSync();
   return (
     <div className="min-h-screen bg-ocean-deep text-content-primary font-sans pb-16">
       <header className="sticky top-0 z-40 bg-ocean-deep/90 backdrop-blur-sm border-b border-ocean-border px-4 py-2 flex items-center justify-between">

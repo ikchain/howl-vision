@@ -60,6 +60,7 @@ export default function Capture() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageResult, setImageResult] = useState<AnalyzeResponse | null>(null);
   const [imageSaved, setImageSaved] = useState(false);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
 
   // Symptoms state
   const [symptomsText, setSymptomsText] = useState("");
@@ -97,6 +98,7 @@ export default function Capture() {
     setPreviewUrl(null);
     setImageResult(null);
     setImageSaved(false);
+    setCurrentFile(null);
     setSymptomsText("");
     setTriageResult(null);
     setTriageSaved(false);
@@ -109,6 +111,7 @@ export default function Capture() {
       setImageResult(null);
       setErrorMsg("");
       setImageSaved(false);
+      setCurrentFile(file);
 
       if (file.size > MAX_IMAGE_SIZE) {
         setErrorMsg("Image too large (max 5MB).");
@@ -304,7 +307,7 @@ export default function Capture() {
 
           {status === "done" && imageResult && previewUrl && (
             <div className="space-y-3">
-              <ResultCard result={imageResult} previewUrl={previewUrl} />
+              <ResultCard result={imageResult} previewUrl={previewUrl} imageFile={currentFile} species={species} />
               <div className="flex items-center justify-between">
                 <button
                   onClick={resetAll}

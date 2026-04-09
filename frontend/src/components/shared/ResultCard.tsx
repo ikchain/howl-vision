@@ -1,15 +1,19 @@
 import { AlertTriangle } from "lucide-react";
 import type { AnalyzeResponse } from "../../types";
 import { ConfidenceBar } from "./ConfidenceBar";
+import { FeedbackPanel } from "./FeedbackPanel";
 import { UrgencyBadge } from "./UrgencyBadge";
 import MarkdownRenderer from "./MarkdownRenderer";
 
 interface Props {
   result: AnalyzeResponse;
   previewUrl: string;
+  /** Original File for feedback submission. Null when viewing from History. */
+  imageFile?: File | null;
+  species?: "canine" | "feline";
 }
 
-export function ResultCard({ result, previewUrl }: Props) {
+export function ResultCard({ result, previewUrl, imageFile, species = "canine" }: Props) {
   const {
     classification,
     narrative,
@@ -128,6 +132,18 @@ export function ResultCard({ result, previewUrl }: Props) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Active learning feedback (spec D1 — low_confidence + inconclusive only) */}
+      {(isInconclusive || isLowConf) && imageFile && (
+        <FeedbackPanel
+          analysisId={result.analysis_id}
+          imageFile={imageFile}
+          originalLabel={classification.label}
+          originalConfidence={classification.confidence}
+          predictionQuality={prediction_quality}
+          species={species}
+        />
       )}
     </div>
   );
