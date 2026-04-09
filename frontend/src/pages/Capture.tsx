@@ -265,7 +265,6 @@ export default function Capture() {
                 ref={inputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) {
