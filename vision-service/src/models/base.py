@@ -92,8 +92,8 @@ class ClassificationModel(ABC):
                 "confidence_level": _confidence_level(prob),
             })
 
-        # Entropy of full distribution — logged for OOD analysis (spec D4).
-        # Not used as a UX gate until validated with OOD samples .
+        # Entropy of full distribution — logged for OOD analysis.
+        # Not used as a UX gate until validated with OOD samples.
         entropy = float(-np.sum(probs * np.log(probs + 1e-12)))
 
         top1_prob = float(probs[top_indices[0]]) if len(top_indices) > 0 else 0.0

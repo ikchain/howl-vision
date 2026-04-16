@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed (2026-04-09)
 - **Silent ONNX Fallback:** Frontend now captures and surfaces server failure reason. ResultCard shows amber "Offline Fallback" badge with explanation when server was attempted but failed. Console.warn for debugging.
-- **Gallery Upload on Mobile:** Removed `capture="environment"` from file input so users can select from gallery or camera (reported by Noelia).
+- **Gallery Upload on Mobile:** Removed `capture="environment"` from file input so users can select from gallery or camera (reported by a field tester).
 - **History Detail Scroll Cutoff:** Increased bottom padding (pb-8 → pb-20) so content is visible above the fixed navigation bar.
 
 ### Changed (2026-04-09)
@@ -53,7 +53,7 @@ All notable changes to this project will be documented in this file.
 - **ConnectionBadge:** Uses same-origin health check. Nginx proxies /health to backend.
 - **Onboarding gate:** Profile selection re-renders via tick counter (navigate /capture→/capture was a no-op).
 - **About page:** /chat link fixed to /capture, min-h-screen removed, mobile-first layout, pipeline row.
-- **Gitignore:** Training artifacts (~198MB), .claude/, .env.*, *.tsbuildinfo protected.
+- **Gitignore:** Training artifacts (~198MB), .claude/, .superpowers/, .env.*, *.tsbuildinfo protected.
 
 ### Added (2026-04-05)
 - **One Health Pivot:** PWA mobile-first with 3 modes (offline text, offline ONNX, server). BottomTabBar, QR Connect (jsQR), Onboarding (3 profiles), ConnectionBadge, Capture with species/module selector, IndexedDB history, ONNX INT8 browser inference (675ms), offline triage (500 symptoms + 38 pharma) — `ab6c264..c5aad57`

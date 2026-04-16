@@ -1,5 +1,7 @@
 # Howl Vision
 
+![Howl Vision — A second pair of eyes for everyone who loves an animal](assets/howl-vision-hero.png)
+
 **Accessible veterinary diagnosis where there is no specialist.**
 
 A pet owner at 3am with a worried dog. A lab technician in a rural clinic with a microscope and no dermatologist. A shelter volunteer screening 40 dogs after a rescue. They all need the same thing: a second opinion from someone who has seen this before.
@@ -9,6 +11,7 @@ Howl Vision is a veterinary AI copilot in a single PWA. Image classification, sy
 Built for the [Gemma 4 Good Hackathon](https://www.kaggle.com/competitions/gemma-4-good-hackathon) (Kaggle / Google DeepMind, 2026).
 
 **Live demo:** [app.howlvision.com](https://app.howlvision.com)
+**Technical notebook:** [Howl Vision on Kaggle (reproducible on T4 GPU)](https://www.kaggle.com/code/darovalos/howl-vision-a-second-pair-of-eyes-gemma-4-e4b)
 
 ## What it does
 
