@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+# Pre-push audit for the Howl Vision public mirror.
+# Reconstructed 2026-04-16 after discovering the hook had been lost during
+# the second planchado on 2026-04-08.
+#
+# Audits two distinct leak surfaces per pushed ref:
+#   1) File content at the ref tip (git grep)
+#   2) Commit messages of every commit being added (git rev-list + git log)
+#
+# If either surface matches any PATTERN, the push is blocked.
+# If any FORBIDDEN_FILE is tracked at the ref tip, the push is blocked.
+#
+# Bypass: `git push --no-verify`. Use ONLY when you have verified the hit is
+# a false positive AND documented the reason in the commit message.
+
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Patterns applied to BOTH file content and commit messages (ERE, case-insensitive).
+# Keep in sync with sync-howl-public.sh FILTERS array.
+# ---------------------------------------------------------------------------
+PATTERNS=(
+  # Internal Hetzner IP
+  "148\.251\."
+  # Internal MCP/Serena hostname prefix
+  "mcp\.quantum"
+  # Internal Jira org and host
+  "two-friends"
+  "\.atlassian\.net"
+  # Internal domain with paths
+  "quantumhowl\.com/"
+  # Dev user paths (Linux + macOS)
+  "/home/[a-zA-Z0-9_-]+/"
+  "/Users/[a-zA-Z0-9_-]+/"
+  # Hetzner as a word
+  "\bhetzner\b"
+  # Tunnel / remapped ports
+  "\b40220\b"
+  "\b40221\b"
+  "\b2050[0-5]\b"
+  # Docker bridge subnet used by the SSH tunnel
+  "\b10\.60\."
+  # Secret tokens
+  "hf_[a-zA-Z0-9]{20,}"
+  "ghp_[a-zA-Z0-9]{20,}"
+  "sk-[a-zA-Z0-9]{20,}"
+  "AKIA[A-Z0-9]{16}"
+  # SSH URLs
+  "ssh://"
+  # Jira ticket IDs for this project (deliberately narrow — avoids false
+  # positives on CVE-2024, RFC-2616, ISO-8601, SHA-256, etc.)
+  "\bG4-[0-9]+\b"
+)
+
+# ---------------------------------------------------------------------------
+# Filenames that must never be tracked in the public mirror.
+# ---------------------------------------------------------------------------
+FORBIDDEN_FILES=(
+  "CLAUDE.md"
+  ".mcp.json"
+  ".claude/"
+  ".serena/"
+  "docker-compose.hetzner.yml"
+)
+
+# ---------------------------------------------------------------------------
+# Paths excluded from file-content scanning. Lock files, binaries, and the
+# hook itself (contains pattern literals that would otherwise match).
+# ---------------------------------------------------------------------------
+CONTENT_EXCLUDES=(
+  ":!package-lock.json"
+  ":!pnpm-lock.yaml"
+  ":!yarn.lock"
+  ":!uv.lock"
+  ":!poetry.lock"
+  ":!Cargo.lock"
+  ":!*.onnx"
+  ":!*.gguf"
+  ":!*.pt"
+  ":!*.bin"
+  ":!*.png"
+  ":!*.jpg"
+  ":!*.jpeg"
+  ":!*.webp"
+  ":!*.ico"
+  ":!*.woff"
+  ":!*.woff2"
+  ":!.githooks/pre-push"
+)
+
+ZERO="0000000000000000000000000000000000000000"
+STATUS=0
+
+audit_ref() {
+  local local_sha="$1"
+  local remote_sha="$2"
+  local local_ref="$3"
+
+  # Skip deletes.
+  if [ "$local_sha" = "$ZERO" ]; then
+    return 0
+  fi
+
+  echo "[pre-push] Auditing $local_ref tree for sensitive patterns"
+
+  local pattern
+  for pattern in "${PATTERNS[@]}"; do
+    local matches
+    matches=$(git grep --cached -n -I -E -i "$pattern" "$local_sha" -- "${CONTENT_EXCLUDES[@]}" 2>/dev/null || true)
+    if [ -n "$matches" ]; then
+      echo ""
+      echo "[pre-push] BLOCKED: pattern '$pattern' matched at ref $local_ref"
+      echo "$matches" | head -20
+      STATUS=1
+    fi
+  done
+
+  # Forbidden filenames tracked at the ref tip.
+  local forbidden
+  for forbidden in "${FORBIDDEN_FILES[@]}"; do
+    if git ls-tree -r --name-only "$local_sha" | grep -E "^${forbidden}" >/dev/null 2>&1; then
+      echo ""
+      echo "[pre-push] BLOCKED: forbidden file '$forbidden' is tracked at ref $local_ref"
+      STATUS=1
+    fi
+  done
+}
+
+audit_commit_msgs() {
+  local local_sha="$1"
+  local remote_sha="$2"
+  local local_ref="$3"
+
+  if [ "$local_sha" = "$ZERO" ]; then
+    return 0
+  fi
+
+  # Determine commit range. If remote ref is new, audit the last 100 commits.
+  local range
+  if [ "$remote_sha" = "$ZERO" ]; then
+    range=$(git rev-list -n 100 "$local_sha")
+  else
+    range=$(git rev-list "$remote_sha..$local_sha")
+  fi
+
+  if [ -z "$range" ]; then
+    return 0
+  fi
+
+  local count
+  count=$(echo "$range" | wc -l)
+  echo "[pre-push] Auditing $count commit message(s) on $local_ref"
+
+  local commit
+  for commit in $range; do
+    local msg
+    msg=$(git log -1 --format=%B "$commit")
+    local pattern
+    for pattern in "${PATTERNS[@]}"; do
+      if echo "$msg" | grep -E -i "$pattern" >/dev/null 2>&1; then
+        echo ""
+        echo "[pre-push] BLOCKED: pattern '$pattern' matched in commit message of $commit"
+        echo "  $(echo "$msg" | head -1)"
+        STATUS=1
+      fi
+    done
+  done
+}
+
+# Read refs from stdin. Format per ref:  <local_ref> <local_sha> <remote_ref> <remote_sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ -z "$local_ref" ]; then
+    continue
+  fi
+  audit_ref "$local_sha" "$remote_sha" "$local_ref"
+  audit_commit_msgs "$local_sha" "$remote_sha" "$local_ref"
+done
+
+if [ "$STATUS" -ne 0 ]; then
+  echo ""
+  echo "[pre-push] One or more audits failed. Push blocked."
+  echo "[pre-push] Fix the offending content in the PRIVATE repo (or the commit"
+  echo "[pre-push] message), re-sync, then retry. Bypass with --no-verify only if"
+  echo "[pre-push] you have verified the hit is a false positive."
+  exit 1
+fi
+
+echo "[pre-push] Audit clean. Proceeding with push."
+exit 0
