@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added (2026-04-21)
+- **Client-side image compression before upload:** New `frontend/src/lib/image.ts` with `compressImage(file, opts)` using vanilla Canvas APIs (`createImageBitmap` + `OffscreenCanvas.convertToBlob` + `HTMLCanvasElement.toBlob` fallback for Safari <16.4). Defaults: max 2048 px long dimension, JPEG quality 0.95, skip below 500 KB, fail-open on any decode/encode error. Zero new npm dependencies. Wired into `Capture.tsx`, `ImageDx.tsx`, and `ImageUpload.tsx`. Triggered by a field report from an external veterinarian who hit the previous 5 MB cap with a native iPhone photo during a real home visit.
+- **Accuracy regression protocol:** New `benchmarks/image-compression/eval_compression_accuracy.py` (~860 LOC) runs the full in-domain canine dermatology test set (n=433) through four conditions (lossless baseline + baseline_repeat control + JPEG q=85/90/95), with `cudnn.deterministic=True` + seeded torch/numpy for reproducibility. Reports label flips with Wilson CI + McNemar exact p, softmax delta distribution, KL divergence, ECE/MCE delta, OOD gate FRR delta, and ONNX INT8 disagreement delta. Merge gate for the compression work. Runtime ~20 min on a single GPU. First full run (n=433) at Q=85/90/95 all passed the revised v3 thresholds; noise floor (baseline vs baseline_repeat) = 0 flips.
+- **`preparing_image` status in Capture.tsx:** New transient state entered immediately on file selection, with a 300 ms debounced "Preparing image..." label (so fast compressions don't flash an intermediate label). Loading container gets `role="status"` + `aria-live="polite"` for screen readers.
+
+### Changed (2026-04-21)
+- **`MAX_IMAGE_SIZE_BYTES` raised from 5 MB to 18 MB** in `frontend/src/lib/api.ts`. Now a conservative safety net for the fail-open path, not the primary UX wall. Rationale is asymmetric per transport and documented in-file: `/api/v1/analyze` is multipart (nginx 25 MB hard limit), `/api/v1/chat` is base64-in-JSON (~18.75 MB binary ceiling through the same nginx due to 33% encoding overhead). Single constant keeps both paths covered.
+- **`ImageUpload` callback contract:** signature changed from `onImageSelected(previewUrl, base64)` to `onImageSelected(file, base64)`. Blob URL lifecycle moved to the parent (`VetChat.tsx`) which now owns creation and `revokeObjectURL` on send success, clear, and unmount. Closed a pre-existing leak where every pending image retained a blob URL across sessions.
+
+### Fixed (2026-04-21)
+- **Two pre-existing blob URL leaks surfaced while wiring compression:** `ImageDx.tsx` now tracks `previewUrlRef` and revokes on reset + unmount; `VetChat.tsx` revokes the pending image URL on clear, on message send, and on unmount. Neither path revoked before this work, so heavy use accumulated blob URLs for the full session.
+- **Field bug: "Image too large" rejecting native phone photos.** Hardcoded 5 MB cap in three call sites (`Capture.tsx:30`, `api.ts:25`, `ImageUpload.tsx:22`, `ImageDx.tsx:26`) rejected photos before they left the browser. Modern iPhone / Android flagships produce 6–14 MB JPEGs natively, which made the app unusable for every native camera shot without a manual WhatsApp round-trip. The client-side compression now reduces typical uploads to <2 MB; the raised safety net covers the fail-open path.
+
+### Added (2026-04-17)
+- **README hero image and Kaggle notebook link:** New `assets/howl-vision-hero.png` embedded above the intro; reproducible technical notebook linked below the live demo.
+- **Binary OOD gate benchmark:** LogisticRegression on EfficientNetV2-S features (1280d). Ablation: fine-tuned backbone wins (AUROC 0.9845 vs ImageNet 0.9364). On a 31-image near-domain OOD set, false confidence drops from 71% to 52% (−19 pp).
+- **OOD shelter evaluation:** 81-image protocol (41 shelter + 20 control + 20 synthetic noise). Documents a structural property of softmax classifiers: 77.8% false confidence on near-domain OOD, even when energy score perfectly separates synthetic noise.
+
 ### Added (2026-04-09)
 - **Active Learning Feedback:** Inline FeedbackPanel on low_confidence/inconclusive results. 8 label options (6 classes + Other + Not skin) + free text. Offline-first dual-write: IndexedDB immediate → sequential POST to server. Backend stores images to disk + metadata to PostgreSQL. Startup sync retries pending feedback. One feedback per analysis (dedup by analysis_id).
 - **3-State Prediction Quality:** Vision-service computes `prediction_quality` (confident ≥0.80, low_confidence 0.50–0.80, inconclusive <0.50) + Shannon entropy. Inconclusive skips Gemma 4 narrative + RAG. Low confidence gets cautious narrative. Frontend ONNX replicates same thresholds. Thresholds from benchmark calibration data.

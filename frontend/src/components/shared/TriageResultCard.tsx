@@ -117,6 +117,11 @@ export function TriageResultCard({ result }: Props) {
               <TierIndicator tier={condition.matchTier} />
             </div>
           ))}
+          {result.conditions.some((c) => c.urgency === "monitor") && (
+            <p className="text-[10px] text-yellow-400/90 pt-1">
+              If no improvement in 48h, see a vet.
+            </p>
+          )}
         </div>
       ) : (
         <div className="px-4 pt-3 pb-1">

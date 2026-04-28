@@ -21,5 +21,20 @@ export function fileToBase64(file: File): Promise<string> {
   });
 }
 
-/** Max image size: 5MB (base64 adds ~33% overhead) */
-export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+/**
+ * Hard cap on image upload size — conservative safety net, not the primary
+ * UX wall. After `compressImage` runs (frontend/src/lib/image.ts), real
+ * photos should be <2 MB. This cap exists only for the fail-open path where
+ * compression skipped due to an unexpected error (corrupt file, decode
+ * failure, unsupported MIME type).
+ *
+ * Applies to both transport paths:
+ *   - /api/v1/analyze (multipart/form-data): nginx accepts up to 25 MB.
+ *     18 MB here leaves 7 MB headroom.
+ *   - /api/v1/chat    (base64-in-JSON):       nginx 25 MB ÷ 1.333 base64
+ *     overhead ≈ 18.75 MB binary ceiling. Rounded down to 18 MB.
+ *
+ * Single constant by design (see spec §3 D4). If the transports diverge
+ * enough to need different caps in the future, split then — not now.
+ */
+export const MAX_IMAGE_SIZE_BYTES = 18 * 1024 * 1024;

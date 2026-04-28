@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { BottomTabBar } from "./components/layout/BottomTabBar";
 import { ConnectionBadge } from "./components/layout/ConnectionBadge";
 import { ProfileSwitcher } from "./components/layout/ProfileSwitcher";
+import { UpdateBanner } from "./components/shared/UpdateBanner";
 import { syncPendingFeedback } from "./lib/feedback";
 import { getProfile } from "./lib/profile";
 import Capture from "./pages/Capture";
@@ -23,6 +24,7 @@ function AppLayout() {
   useFeedbackSync();
   return (
     <div className="min-h-screen bg-ocean-deep text-content-primary font-sans pb-16">
+      <UpdateBanner />
       <header className="sticky top-0 z-40 bg-ocean-deep/90 backdrop-blur-sm border-b border-ocean-border px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <img src="/logo-white.svg" alt="Howl Vision" className="w-5 h-5" />

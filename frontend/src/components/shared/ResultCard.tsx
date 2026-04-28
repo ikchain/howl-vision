@@ -86,6 +86,11 @@ export function ResultCard({ result, previewUrl, imageFile, species = "canine" }
               {lowConfidence && (
                 <p className="text-[10px] text-red-400/80 mt-1">Low confidence — consult a veterinarian</p>
               )}
+              {urgency === "monitor" && (
+                <p className="text-[10px] text-yellow-400/90 mt-1">
+                  If no improvement in 48h, see a vet.
+                </p>
+              )}
             </>
           )}
         </div>

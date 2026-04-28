@@ -10,6 +10,8 @@ import { analyzeImage } from "../lib/analyze";
 import { saveAnalysis, saveTriage } from "../lib/db";
 import { getProfile } from "../lib/profile";
 import { triage } from "../lib/triage";
+import { compressImage } from "../lib/image";
+import { MAX_IMAGE_SIZE_BYTES } from "../lib/api";
 import { ResultCard } from "../components/shared/ResultCard";
 import { TriageResultCard } from "../components/shared/TriageResultCard";
 import type { AnalyzeResponse } from "../types";
@@ -20,6 +22,7 @@ type Module = "dermatology" | "parasites";
 type Mode = "photo" | "symptoms";
 type Status =
   | "idle"
+  | "preparing_image"  // compressImage in flight; label debounced to 300 ms
   | "loading_model"
   | "analyzing"
   | "checking_symptoms"
@@ -27,9 +30,12 @@ type Status =
   | "done"
   | "error";
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MIN_SYMPTOMS_LEN = 5;
 const MAX_SYMPTOMS_LEN = 2000;
+// Show "Preparing image..." only if compression exceeds this debounce, so
+// fast paths (typical photos, <300 ms on mid-range phones) don't flash the
+// label. Pattern matches STILL_WORKING_DELAY_MS below.
+const PREPARING_LABEL_DELAY_MS = 300;
 // "Still working..." copy kicks in at 3.5s — long enough that the user
 // understands something is in flight, short enough that the wait does not
 // silently exhaust their patience.
@@ -68,6 +74,7 @@ export default function Capture() {
   const [triageSaved, setTriageSaved] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState("");
+  const [showPreparingLabel, setShowPreparingLabel] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef<string | null>(null);
   const stillWorkingTimerRef = useRef<number | null>(null);
@@ -81,6 +88,21 @@ export default function Capture() {
       }
     };
   }, []);
+
+  // Debounce the "Preparing image..." label: only surface it if compression
+  // takes longer than PREPARING_LABEL_DELAY_MS. Prevents a flash on fast
+  // paths while giving the user feedback when the wait is real.
+  useEffect(() => {
+    if (status !== "preparing_image") {
+      setShowPreparingLabel(false);
+      return;
+    }
+    const t = window.setTimeout(
+      () => setShowPreparingLabel(true),
+      PREPARING_LABEL_DELAY_MS,
+    );
+    return () => clearTimeout(t);
+  }, [status]);
 
   // Reset all transient state. Called on mode toggle and on "Try again".
   // Toggling Photo↔Symptoms wipes both branches' state — two modes, two
@@ -107,27 +129,55 @@ export default function Capture() {
 
   const handleFile = useCallback(
     async (file: File) => {
-      // Clear stale state from any previous analysis before validation
+      // Clear stale state from any previous analysis before compression
       setImageResult(null);
       setErrorMsg("");
       setImageSaved(false);
-      setCurrentFile(file);
 
-      if (file.size > MAX_IMAGE_SIZE) {
-        setErrorMsg("Image too large (max 5MB).");
+      // Enter preparing_image immediately. The label-debounce effect keeps
+      // the UI quiet on fast compressions (<300 ms typical).
+      setStatus("preparing_image");
+
+      let processed: File = file;
+      try {
+        const result = await compressImage(file);
+        processed = result.file;
+        console.debug(
+          `[image] ${result.beforeBytes} -> ${result.afterBytes} bytes` +
+            (result.skipped ? ` (skipped: ${result.reason})` : ""),
+        );
+      } catch (e) {
+        // compressImage only throws for programmer errors (bad opts). Fall
+        // open: use the original file and rely on the hard-cap check below.
+        console.warn("[image] compressImage threw, using original file:", e);
+      }
+
+      // currentFile must reflect what the analyze pipeline + the active
+      // learning feedback flow actually saw. Setting it BEFORE compression
+      // would desync the feedback image from the inference input.
+      setCurrentFile(processed);
+
+      // Safety net: compression should keep real photos <2 MB; this cap
+      // covers the fail-open path where compression skipped.
+      if (processed.size > MAX_IMAGE_SIZE_BYTES) {
+        setErrorMsg(
+          `Image too large (${(processed.size / 1024 / 1024).toFixed(1)} MB). ` +
+            "Try a smaller photo.",
+        );
         setStatus("error");
         return;
       }
+
       if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
-      const url = URL.createObjectURL(file);
+      const url = URL.createObjectURL(processed);
       previewUrlRef.current = url;
       setPreviewUrl(url);
       setStatus("analyzing");
       try {
-        const response = await analyzeImage(file, species, module, setStatus);
+        const response = await analyzeImage(processed, species, module, setStatus);
         setImageResult(response);
         setStatus("done");
-        saveAnalysis(file, response, species, module)
+        saveAnalysis(processed, response, species, module)
           .then(() => setImageSaved(true))
           .catch((err) => console.warn("Failed to save analysis to history:", err));
       } catch (err) {
@@ -284,13 +334,21 @@ export default function Capture() {
               >
                 <Camera className="w-10 h-10 text-content-secondary" />
                 <span className="text-sm text-content-muted">{cameraHint}</span>
-                <span className="text-xs text-content-secondary">JPEG, PNG up to 5MB</span>
+                <span className="text-xs text-content-secondary">
+                  Photos are resized automatically before upload
+                </span>
               </button>
             </>
           )}
 
-          {(status === "analyzing" || status === "loading_model") && (
-            <div className="flex flex-col items-center gap-3 py-12">
+          {(status === "preparing_image" ||
+            status === "analyzing" ||
+            status === "loading_model") && (
+            <div
+              className="flex flex-col items-center gap-3 py-12"
+              role="status"
+              aria-live="polite"
+            >
               {previewUrl && (
                 <img
                   src={previewUrl}
@@ -300,7 +358,13 @@ export default function Capture() {
               )}
               <div className="flex items-center gap-2 text-sm text-teal-text">
                 <div className="w-2 h-2 rounded-full bg-teal animate-pulse" />
-                {status === "loading_model" ? "Loading AI model..." : "Analyzing image..."}
+                {status === "preparing_image"
+                  ? showPreparingLabel
+                    ? "Preparing image..."
+                    : "" /* sub-debounce: keep indicator but suppress label */
+                  : status === "loading_model"
+                    ? "Loading AI model..."
+                    : "Analyzing image..."}
               </div>
             </div>
           )}

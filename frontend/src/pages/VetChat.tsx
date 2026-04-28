@@ -19,15 +19,44 @@ export default function VetChat() {
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const assistantIdRef = useRef<string>("");
+  // Owns the lifecycle of the pending-image blob URL. Earlier versions
+  // created it inside ImageUpload and never revoked it. The parent owns it
+  // now and revokes on send, clear, and unmount.
+  const pendingPreviewUrlRef = useRef<string | null>(null);
+
+  function revokePendingPreview() {
+    if (pendingPreviewUrlRef.current) {
+      URL.revokeObjectURL(pendingPreviewUrlRef.current);
+      pendingPreviewUrlRef.current = null;
+    }
+  }
+
+  function handleImageSelected(file: File, base64: string) {
+    revokePendingPreview();
+    const previewUrl = URL.createObjectURL(file);
+    pendingPreviewUrlRef.current = previewUrl;
+    setPendingImage({ previewUrl, base64 });
+  }
+
+  function handleImageClear() {
+    revokePendingPreview();
+    setPendingImage(null);
+  }
 
   // Auto-scroll when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, activeTools]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount: abort in-flight stream AND release the pending
+  // preview URL if any.
   useEffect(() => {
-    return () => abortRef.current?.abort();
+    return () => {
+      abortRef.current?.abort();
+      if (pendingPreviewUrlRef.current) {
+        URL.revokeObjectURL(pendingPreviewUrlRef.current);
+      }
+    };
   }, []);
 
   function appendToken(content: string) {
@@ -91,6 +120,9 @@ export default function VetChat() {
         },
         onDone() {
           setActiveTools([]);
+          // Clear pending image AND revoke its blob URL — otherwise the URL
+          // leaks on every successful send.
+          revokePendingPreview();
           setPendingImage(null);
           setStatus("idle");
         },
@@ -156,7 +188,7 @@ export default function VetChat() {
           <div className="mb-2">
             <ImageUpload
               onImageSelected={() => {}}
-              onClear={() => setPendingImage(null)}
+              onClear={handleImageClear}
               currentPreview={pendingImage.previewUrl}
               disabled={busy}
             />
@@ -166,10 +198,8 @@ export default function VetChat() {
         <div className="flex items-end gap-2">
           {!pendingImage && (
             <ImageUpload
-              onImageSelected={(previewUrl, base64) =>
-                setPendingImage({ previewUrl, base64 })
-              }
-              onClear={() => setPendingImage(null)}
+              onImageSelected={handleImageSelected}
+              onClear={handleImageClear}
               disabled={busy}
             />
           )}

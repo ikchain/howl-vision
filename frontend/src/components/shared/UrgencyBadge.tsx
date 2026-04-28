@@ -1,7 +1,7 @@
 const URGENCY_CONFIG = {
   emergency: { label: "Emergency", color: "bg-red-600 text-white" },
   soon: { label: "See Vet Soon", color: "bg-amber-600 text-white" },
-  monitor: { label: "Monitor", color: "bg-yellow-600 text-black" },
+  monitor: { label: "Watch & Recheck", color: "bg-yellow-600 text-black" },
   healthy: { label: "Healthy", color: "bg-teal text-white" },
 } as const;
 

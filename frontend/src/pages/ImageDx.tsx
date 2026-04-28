@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Upload, RotateCcw } from "lucide-react";
 import { streamChat } from "../lib/sse";
 import { fileToBase64, MAX_IMAGE_SIZE_BYTES } from "../lib/api";
+import { compressImage } from "../lib/image";
 import type { ActiveTool } from "../types";
 import MarkdownRenderer from "../components/shared/MarkdownRenderer";
 import ToolStatus from "../components/shared/ToolStatus";
@@ -21,16 +22,36 @@ export default function ImageDx() {
 
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Track the blob URL so reset() + unmount can revoke it. Earlier versions
+  // leaked a URL per upload; revocation now happens on reset and on unmount.
+  const previewUrlRef = useRef<string | null>(null);
 
   const analyze = useCallback(async (file: File) => {
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      setErrorMsg(`Image too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 5MB.`);
+    let processed: File = file;
+    try {
+      const result = await compressImage(file);
+      processed = result.file;
+      console.debug(
+        `[image] ${result.beforeBytes} -> ${result.afterBytes} bytes` +
+          (result.skipped ? ` (skipped: ${result.reason})` : ""),
+      );
+    } catch (e) {
+      console.warn("[image] compressImage threw, using original file:", e);
+    }
+
+    if (processed.size > MAX_IMAGE_SIZE_BYTES) {
+      setErrorMsg(
+        `Image too large (${(processed.size / 1024 / 1024).toFixed(1)} MB). Try a smaller photo.`,
+      );
       setStatus("error");
       return;
     }
 
-    const base64 = await fileToBase64(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    const base64 = await fileToBase64(processed);
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const url = URL.createObjectURL(processed);
+    previewUrlRef.current = url;
+    setPreviewUrl(url);
     setResult("");
     setActiveTools([]);
     setErrorMsg("");
@@ -76,12 +97,23 @@ export default function ImageDx() {
 
   function reset() {
     abortRef.current?.abort();
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
     setStatus("idle");
     setPreviewUrl(null);
     setResult("");
     setActiveTools([]);
     setErrorMsg("");
   }
+
+  // Revoke any outstanding blob URL on unmount.
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
@@ -114,7 +146,9 @@ export default function ImageDx() {
             <p className="text-sm text-content-muted">
               Drag & drop an image here, or click to browse
             </p>
-            <p className="text-xs text-content-secondary">JPEG, PNG up to 5MB</p>
+            <p className="text-xs text-content-secondary">
+              Photos are resized automatically before upload
+            </p>
           </div>
         </>
       ) : (

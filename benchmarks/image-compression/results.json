@@ -1,0 +1,252 @@
+{
+  "metadata": {
+    "protocol": "AC-10 v3",
+    "timestamp": "2026-04-21T16:09:12.731139+00:00",
+    "seed": 42,
+    "n_images": 433,
+    "q_levels": [
+      85,
+      90,
+      95
+    ],
+    "gate_threshold_sigmoid": 0.917211,
+    "thresholds": {
+      "mcnemar_p_min": 0.05,
+      "max_flip_rate": 0.02,
+      "max_ece_regression": 0.005,
+      "max_gate_frr_delta_pp": 2.0,
+      "max_onnx_disagreement_delta_pp": 1.0,
+      "max_p95_softmax_delta": 0.05
+    },
+    "determinism": {
+      "cudnn_deterministic": true,
+      "cudnn_benchmark": false
+    }
+  },
+  "noise_floor_baseline_vs_repeat": {
+    "n_images": 433,
+    "label_flips": {
+      "count": 0,
+      "rate": 0.0,
+      "wilson_95_lo": 0.0,
+      "wilson_95_hi": 0.008794034267798671,
+      "mcnemar_discordant": {
+        "b_correct_c_wrong": 0,
+        "c_correct_b_wrong": 0
+      },
+      "mcnemar_exact_p": 1.0
+    },
+    "softmax_top1_abs_delta": {
+      "median": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "max": 0.0
+    },
+    "softmax_kl_divergence": {
+      "median": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "max": 0.0
+    },
+    "calibration": {
+      "ece_baseline": 0.03137553756837201,
+      "ece_compressed": 0.03137553756837201,
+      "ece_delta": 0.0,
+      "mce_baseline": 0.335409976541996,
+      "mce_compressed": 0.335409976541996,
+      "mce_delta": 0.0
+    },
+    "gate": {
+      "frr_baseline": 0.04849884526558892,
+      "frr_compressed": 0.04849884526558892,
+      "frr_delta_pp": 0.0,
+      "threshold": 0.917211
+    },
+    "onnx_int8": {
+      "disagreement_baseline": 0.03464203233256351,
+      "disagreement_compressed": 0.03464203233256351,
+      "disagreement_delta_pp": 0.0
+    }
+  },
+  "per_quality_level": {
+    "85": {
+      "metrics": {
+        "n_images": 433,
+        "label_flips": {
+          "count": 7,
+          "rate": 0.016166281755196306,
+          "wilson_95_lo": 0.007852429746633083,
+          "wilson_95_hi": 0.03298983436008203,
+          "mcnemar_discordant": {
+            "b_correct_c_wrong": 2,
+            "c_correct_b_wrong": 3
+          },
+          "mcnemar_exact_p": 1.0,
+          "attributable_to_compression": 7
+        },
+        "softmax_top1_abs_delta": {
+          "median": 0.00012165307998657227,
+          "p90": 0.030876445770263678,
+          "p95": 0.04474933147430417,
+          "p99": 0.09590942382812505,
+          "max": 0.1617031693458557
+        },
+        "softmax_kl_divergence": {
+          "median": 1.959355488625099e-05,
+          "p90": 0.0050567739445723766,
+          "p95": 0.008845653706363855,
+          "p99": 0.04988509899163088,
+          "max": 0.09310629172918378
+        },
+        "calibration": {
+          "ece_baseline": 0.03137553756837201,
+          "ece_compressed": 0.024940660657838662,
+          "ece_delta": -0.006434876910533349,
+          "mce_baseline": 0.335409976541996,
+          "mce_compressed": 0.3575598821043968,
+          "mce_delta": 0.022149905562400818
+        },
+        "gate": {
+          "frr_baseline": 0.04849884526558892,
+          "frr_compressed": 0.046189376443418015,
+          "frr_delta_pp": -0.23094688221709028,
+          "threshold": 0.917211
+        },
+        "onnx_int8": {
+          "disagreement_baseline": 0.03464203233256351,
+          "disagreement_compressed": 0.02771362586605081,
+          "disagreement_delta_pp": -0.6928406466512698
+        }
+      },
+      "checks": {
+        "label_flips_not_directional": true,
+        "label_flip_rate_under_threshold": true,
+        "ece_no_regression": true,
+        "gate_frr_delta_under_threshold": true,
+        "onnx_disagreement_delta_under_threshold": true,
+        "p95_softmax_delta_under_threshold": true,
+        "overall_pass": true
+      }
+    },
+    "90": {
+      "metrics": {
+        "n_images": 433,
+        "label_flips": {
+          "count": 5,
+          "rate": 0.011547344110854504,
+          "wilson_95_lo": 0.00494207084982097,
+          "wilson_95_hi": 0.026743556160060876,
+          "mcnemar_discordant": {
+            "b_correct_c_wrong": 2,
+            "c_correct_b_wrong": 1
+          },
+          "mcnemar_exact_p": 1.0,
+          "attributable_to_compression": 5
+        },
+        "softmax_top1_abs_delta": {
+          "median": 5.799531936645508e-05,
+          "p90": 0.017009484767913818,
+          "p95": 0.030049252510070755,
+          "p99": 0.04812206029891969,
+          "max": 0.09842360019683838
+        },
+        "softmax_kl_divergence": {
+          "median": 5.744561254954847e-06,
+          "p90": 0.0019399850822279117,
+          "p95": 0.0036995956090888423,
+          "p99": 0.009050903312275475,
+          "max": 0.020732493782091424
+        },
+        "calibration": {
+          "ece_baseline": 0.03137553756837201,
+          "ece_compressed": 0.02603034127942411,
+          "ece_delta": -0.0053451962889479,
+          "mce_baseline": 0.335409976541996,
+          "mce_compressed": 0.34546787291765213,
+          "mce_delta": 0.010057896375656128
+        },
+        "gate": {
+          "frr_baseline": 0.04849884526558892,
+          "frr_compressed": 0.046189376443418015,
+          "frr_delta_pp": -0.23094688221709028,
+          "threshold": 0.917211
+        },
+        "onnx_int8": {
+          "disagreement_baseline": 0.03464203233256351,
+          "disagreement_compressed": 0.03695150115473441,
+          "disagreement_delta_pp": 0.23094688221709028
+        }
+      },
+      "checks": {
+        "label_flips_not_directional": true,
+        "label_flip_rate_under_threshold": true,
+        "ece_no_regression": true,
+        "gate_frr_delta_under_threshold": true,
+        "onnx_disagreement_delta_under_threshold": true,
+        "p95_softmax_delta_under_threshold": true,
+        "overall_pass": true
+      }
+    },
+    "95": {
+      "metrics": {
+        "n_images": 433,
+        "label_flips": {
+          "count": 2,
+          "rate": 0.004618937644341801,
+          "wilson_95_lo": 0.0012675679951587885,
+          "wilson_95_hi": 0.01668310336947315,
+          "mcnemar_discordant": {
+            "b_correct_c_wrong": 0,
+            "c_correct_b_wrong": 1
+          },
+          "mcnemar_exact_p": 1.0,
+          "attributable_to_compression": 2
+        },
+        "softmax_top1_abs_delta": {
+          "median": 3.421306610107422e-05,
+          "p90": 0.009745478630065918,
+          "p95": 0.015916812419891353,
+          "p99": 0.029077713489532475,
+          "max": 0.08360302448272705
+        },
+        "softmax_kl_divergence": {
+          "median": 2.8319816903365317e-06,
+          "p90": 0.0005506366159265255,
+          "p95": 0.0009353181493716663,
+          "p99": 0.0026835788306333245,
+          "max": 0.015667640393913884
+        },
+        "calibration": {
+          "ece_baseline": 0.03137553756837201,
+          "ece_compressed": 0.02903218708467816,
+          "ece_delta": -0.00234335048369385,
+          "mce_baseline": 0.335409976541996,
+          "mce_compressed": 0.20986980862087679,
+          "mce_delta": -0.12554016792111922
+        },
+        "gate": {
+          "frr_baseline": 0.04849884526558892,
+          "frr_compressed": 0.04157043879907621,
+          "frr_delta_pp": -0.6928406466512709,
+          "threshold": 0.917211
+        },
+        "onnx_int8": {
+          "disagreement_baseline": 0.03464203233256351,
+          "disagreement_compressed": 0.03233256351039261,
+          "disagreement_delta_pp": -0.2309468822170896
+        }
+      },
+      "checks": {
+        "label_flips_not_directional": true,
+        "label_flip_rate_under_threshold": true,
+        "ece_no_regression": true,
+        "gate_frr_delta_under_threshold": true,
+        "onnx_disagreement_delta_under_threshold": true,
+        "p95_softmax_delta_under_threshold": true,
+        "overall_pass": true
+      }
+    }
+  }
+}

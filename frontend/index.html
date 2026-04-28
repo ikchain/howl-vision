@@ -9,9 +9,75 @@
     <meta property="og:description" content="Veterinary diagnosis where there is no specialist. One Health AI for pet owners, lab techs, and field workers." />
     <meta property="og:image" content="/og-image.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      /* Splash shown before the React bundle hydrates. Replaced when React mounts inside #root. */
+      #splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.25rem;
+        background: #0a1628;
+        color: #e6edf5;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        text-align: center;
+        padding: 2rem 1.25rem;
+        animation: splash-fade-in 0.4s ease-out;
+      }
+      #splash .logo { width: 72px; height: 72px; opacity: 0.96; }
+      #splash .title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        margin: 0;
+      }
+      #splash .tagline {
+        font-size: 0.9rem;
+        color: #8aa2c4;
+        margin: -0.5rem 0 0;
+        max-width: 24rem;
+        line-height: 1.4;
+      }
+      #splash .powered {
+        font-size: 0.7rem;
+        color: #5d7595;
+        letter-spacing: 0.05em;
+        margin-top: 1.5rem;
+        max-width: 28rem;
+        line-height: 1.6;
+      }
+      #splash .powered strong { color: #009db0; font-weight: 600; }
+      #splash .spinner {
+        width: 28px;
+        height: 28px;
+        border: 2px solid rgba(0, 157, 176, 0.18);
+        border-top-color: #009db0;
+        border-radius: 50%;
+        animation: splash-spin 0.9s linear infinite;
+        margin-top: 0.5rem;
+      }
+      @keyframes splash-fade-in { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes splash-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) {
+        #splash { animation: none; }
+        #splash .spinner { animation-duration: 2s; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="splash" role="status" aria-label="Loading Howl Vision">
+        <img class="logo" src="/logo-color.svg" alt="" />
+        <h1 class="title">HOWL VISION</h1>
+        <p class="tagline">A second pair of eyes for veterinarians</p>
+        <div class="spinner" aria-hidden="true"></div>
+        <p class="powered">
+          Powered by <strong>Gemma 4</strong> · <strong>Ollama</strong> · <strong>Unsloth</strong> · <strong>llama.cpp</strong> · <strong>ONNX Runtime</strong>
+        </p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

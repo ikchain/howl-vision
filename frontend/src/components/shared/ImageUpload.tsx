@@ -1,9 +1,16 @@
 import { useRef, useState } from "react";
 import { Paperclip, X } from "lucide-react";
 import { fileToBase64, MAX_IMAGE_SIZE_BYTES } from "../../lib/api";
+import { compressImage } from "../../lib/image";
 
 interface Props {
-  onImageSelected: (previewUrl: string, base64: string) => void;
+  /**
+   * Called with the processed File (post-compression, JPEG) and base64. The
+   * parent is responsible for creating and revoking any preview blob URL
+   * derived from the File — this component does not own blob URL lifecycle
+   * anymore.
+   */
+  onImageSelected: (file: File, base64: string) => void;
   onClear: () => void;
   currentPreview?: string;
   disabled?: boolean;
@@ -19,14 +26,27 @@ export default function ImageUpload({
   const [error, setError] = useState<string | null>(null);
 
   async function handleFile(file: File) {
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      setError("Image must be under 5MB");
+    let processed: File = file;
+    try {
+      const result = await compressImage(file);
+      processed = result.file;
+      console.debug(
+        `[image] ${result.beforeBytes} -> ${result.afterBytes} bytes` +
+          (result.skipped ? ` (skipped: ${result.reason})` : ""),
+      );
+    } catch (e) {
+      console.warn("[image] compressImage threw, using original file:", e);
+    }
+
+    if (processed.size > MAX_IMAGE_SIZE_BYTES) {
+      setError(
+        `Image too large (${(processed.size / 1024 / 1024).toFixed(1)} MB). Try a smaller photo.`,
+      );
       setTimeout(() => setError(null), 3000);
       return;
     }
-    const base64 = await fileToBase64(file);
-    const previewUrl = URL.createObjectURL(file);
-    onImageSelected(previewUrl, base64);
+    const base64 = await fileToBase64(processed);
+    onImageSelected(processed, base64);
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
