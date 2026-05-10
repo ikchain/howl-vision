@@ -1,6 +1,8 @@
 import * as ort from "onnxruntime-web";
 
 const MODEL_PATH = "/models/dermatology_int8.onnx";
+// Must match cacheName in vite.config.ts runtimeCaching for the model.
+const MODEL_CACHE_NAME = "howl-vision-models-v1";
 const INPUT_SIZE = 384;
 // ImageNet normalization constants — must match timm defaults used during training
 const MEAN: [number, number, number] = [0.485, 0.456, 0.406];
@@ -56,6 +58,42 @@ export function isModelLoaded(): boolean {
 
 export function getLoadError(): string | null {
   return loadError;
+}
+
+/**
+ * Warms both the ONNX model and the onnxruntime-web wasm binary into Cache
+ * Storage. Calls loadModel() instead of a bare fetch: instantiating the
+ * InferenceSession is the only path that triggers ort to fetch its wasm
+ * runtime, and the wasm is required for any later offline inference.
+ *
+ * Cost: ~150 MB peak RAM (session + buffers) once per session. The session
+ * stays warm so subsequent classifyImage() calls are instant.
+ */
+export async function prefetchModel(): Promise<boolean> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return false;
+  }
+  try {
+    await loadModel();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Returns true if the ONNX model is present in Cache Storage and the app
+ * can run offline inference without network.
+ */
+export async function isModelCached(): Promise<boolean> {
+  if (typeof caches === "undefined") return false;
+  try {
+    const cache = await caches.open(MODEL_CACHE_NAME);
+    const match = await cache.match(MODEL_PATH);
+    return match !== undefined;
+  } catch {
+    return false;
+  }
 }
 
 async function preprocessImage(file: File): Promise<ort.Tensor> {

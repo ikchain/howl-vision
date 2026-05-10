@@ -20,8 +20,33 @@ function useFeedbackSync() {
   }, []);
 }
 
+// Warm both the ONNX model and the onnxruntime-web wasm into Cache Storage on
+// the first online tick. Fire-and-forget. Retries when the network comes back
+// online. Guards on isModelLoaded() (in-memory session) rather than
+// isModelCached() (only the .onnx) — a stale cache from before the wasm-cache
+// fix would otherwise short-circuit the warmup and leave offline broken.
+function useModelPrefetch() {
+  useEffect(() => {
+    let cancelled = false;
+    const tryPrefetch = async () => {
+      if (cancelled) return;
+      const onnx = await import("./lib/onnx");
+      if (onnx.isModelLoaded()) return;
+      await onnx.prefetchModel();
+    };
+    tryPrefetch();
+    const handleOnline = () => { tryPrefetch(); };
+    window.addEventListener("online", handleOnline);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+}
+
 function AppLayout() {
   useFeedbackSync();
+  useModelPrefetch();
   return (
     <div className="min-h-screen bg-ocean-deep text-content-primary font-sans pb-16">
       <UpdateBanner />

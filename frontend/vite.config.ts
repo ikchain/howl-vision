@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "logo-white.svg", "logo-color.svg", "models/dermatology_int8.onnx"],
+      includeAssets: ["favicon.svg", "logo-white.svg", "logo-color.svg"],
       manifest: {
         name: "Howl Vision — One Health AI",
         short_name: "Howl Vision",
@@ -22,11 +22,49 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Only cache static build artifacts — API responses must never be cached
-        globPatterns: ["**/*.{js,css,html,svg,woff2,json,onnx}"],
-        // Raised from the 2MB default to accommodate the 20MB ONNX model.
-        // The model is precached so offline inference works after first load.
-        maximumFileSizeToCacheInBytes: 25 * 1024 * 1024,
+        // Static build artifacts only. API responses never cached.
+        // ONNX models are runtime-cached below, NOT precached: workbox precache
+        // is transactional — a single failed asset (e.g. the 20MB model on a
+        // flaky mobile connection) silently breaks the whole install.
+        globPatterns: ["**/*.{js,css,html,svg,woff2,json}"],
+        runtimeCaching: [
+          {
+            // CacheFirst: once stored, served from disk without network.
+            // Dedicated cache name survives cleanupOutdatedCaches across SW updates.
+            urlPattern: ({ url }) => url.pathname === "/models/dermatology_int8.onnx",
+            handler: "CacheFirst",
+            options: {
+              cacheName: "howl-vision-models-v1",
+              expiration: {
+                maxEntries: 1,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+              rangeRequests: false,
+            },
+          },
+          {
+            // onnxruntime-web ships its WebAssembly runtime as a separate ~25MB
+            // .wasm asset. Without caching it, offline inference fails before
+            // ever reaching the model: ort.InferenceSession.create() fetches
+            // the wasm first, hits NetworkError, and rejects.
+            urlPattern: ({ url }) => url.pathname.endsWith(".wasm"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "howl-vision-runtime-v1",
+              expiration: {
+                maxEntries: 5,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+              rangeRequests: false,
+            },
+          },
+        ],
       },
     }),
   ],

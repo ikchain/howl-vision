@@ -113,8 +113,18 @@ export async function analyzeImage(
     try {
       await onnx.loadModel();
     } catch {
+      // Distinguish "never downloaded" from "download exists but load failed":
+      // the first is a recoverable user-action issue ("connect once to download"),
+      // the second indicates a real load error (corrupt file, runtime issue).
+      const cached = await onnx.isModelCached();
+      const isOnline = typeof navigator === "undefined" || navigator.onLine !== false;
+      if (!cached && !isOnline) {
+        throw new Error(
+          "Offline model not yet downloaded. Connect to wifi or mobile data once to download (~20 MB), then it will work offline.",
+        );
+      }
       throw new Error(
-        "Offline model could not be loaded. Connect to a Clinic Hub for image analysis.",
+        "Offline model failed to load. Reload the page or connect to a Clinic Hub.",
       );
     }
     onStatus?.("analyzing");
