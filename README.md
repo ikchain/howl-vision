@@ -172,6 +172,10 @@ git config core.hooksPath .githooks
 
 Run this once after cloning. The hook scans the tree of every ref being pushed (branches and tags) for sensitive patterns — server IPs, internal hosts, tokens, dev paths, and forbidden filenames — and blocks the push if any match. Bypassing it requires an explicit `git push --no-verify`, which should only be used when you have verified the hit is a false positive.
 
+## Privacy
+
+The public demo at [app.howlvision.com](https://app.howlvision.com) uses [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) for aggregate visitor counts. The beacon is cookie-less, does not fingerprint, and does not collect personal data. Image uploads only leave the device when a user explicitly submits feedback ("Help improve: What is this?") — see [Active learning feedback](#active-learning-feedback) above.
+
 ## License
 
 Apache 2.0
